@@ -11,8 +11,8 @@ router.post('/register', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
-      'INSERT INTO users (username, email, password, role,mobile) VALUES (?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, role, mobile || 'user']
+      'INSERT INTO users (username, email, password, role,mobile, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [username, email, hashedPassword, role, mobile || 'user',new Date()]
     );
     res.status(201).json({ id: result.insertId, message: 'User registered successfully' });
   } catch (err) {
@@ -36,6 +36,10 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
+
+    // Capture current datetime
+    const now = new Date();
+    await db.query('UPDATE users SET last_login = ? WHERE id = ?', [now, user.id]);
 
     res.json({ message: 'Login successful', token });
   } catch (err) {
