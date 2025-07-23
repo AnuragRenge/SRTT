@@ -1,8 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -43,7 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool isValidMobile(String mobile) {
-    // Example: 10 digit number
     final mobileRegex = RegExp(r'^\d{10}$');
     return mobileRegex.hasMatch(mobile);
   }
@@ -79,190 +79,294 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE3F0FF), Color(0xFFBBD2EC)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/background.jpg',
+            fit: BoxFit.cover,
           ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.87),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blueGrey[100]!.withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black.withOpacity(0.18),
+                  Colors.black.withOpacity(0.32)
                 ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Sign Up",
-                      style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.35),
+                        width: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    TextFormField(
-                      controller: _usernameController,
-                      focusNode: _usernameFocus,
-                      textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context).requestFocus(_emailFocus);
-                      },
-                      decoration: const InputDecoration(
-                        labelText: "Username",
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Username is required';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Username should be at least 3 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      focusNode: _emailFocus,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context).requestFocus(_mobileFocus);
-                      },
-                      decoration: const InputDecoration(
-                        labelText: "Email",
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email is required';
-                        }
-                        if (!isValidEmail(value.trim())) {
-                          return 'Enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _mobileController,
-                      focusNode: _mobileFocus,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.phone,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context).requestFocus(_passwordFocus);
-                      },
-                      decoration: const InputDecoration(
-                        labelText: "Mobile",
-                        prefixIcon: Icon(Icons.phone_android),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Mobile number is required';
-                        }
-                        if (!isValidMobile(value.trim())) {
-                          return 'Enter a valid 10 digit mobile number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocus,
-                      textInputAction: TextInputAction.done,
-                      obscureText: true,
-                      onFieldSubmitted: (_) => _handleRegister(),
-                      decoration: const InputDecoration(
-                        labelText: "Password",
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Password is required';
-                        }
-                        if (value.length < 6) {
-                          return 'Password should be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 14),
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                    ],
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[700],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        onPressed: _loading
-                            ? null
-                            : () {
-                          if (_formKey.currentState!.validate()) {
-                            _handleRegister();
-                          }
-                        },
-                        child: _loading
-                            ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                            : const Text(
-                          "Register",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text("Already have an account? "),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            "Log in",
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Sign Up",
                             style: TextStyle(
-                              color: Colors.blue[700],
+                              color: Colors.white,
+                              fontSize: 26,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 8,
+                                  color: Colors.black.withOpacity(0.4),
+                                  offset: const Offset(1, 2),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 28),
+                          TextFormField(
+                            controller: _usernameController,
+                            focusNode: _usernameFocus,
+                            style: const TextStyle(color: Colors.white),
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              FocusScope.of(context).requestFocus(_emailFocus);
+                            },
+                            decoration: InputDecoration(
+                              labelText: "Username",
+                              prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Username is required';
+                              }
+                              if (value.trim().length < 3) {
+                                return 'Username should be at least 3 characters';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _emailController,
+                            focusNode: _emailFocus,
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              FocusScope.of(context).requestFocus(_mobileFocus);
+                            },
+                            decoration: InputDecoration(
+                              labelText: "Email",
+                              prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Email is required';
+                              }
+                              if (!isValidEmail(value.trim())) {
+                                return 'Enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _mobileController,
+                            focusNode: _mobileFocus,
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              FocusScope.of(context).requestFocus(_passwordFocus);
+                            },
+                            decoration: InputDecoration(
+                              labelText: "Mobile",
+                              prefixIcon: const Icon(Icons.phone_android, color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Mobile number is required';
+                              }
+                              if (!isValidMobile(value.trim())) {
+                                return 'Enter a valid 10 digit mobile number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _passwordController,
+                            focusNode: _passwordFocus,
+                            style: const TextStyle(color: Colors.white),
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _handleRegister(),
+                            decoration: InputDecoration(
+                              labelText: "Password",
+                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Password is required';
+                              }
+                              if (value.length < 6) {
+                                return 'Password should be at least 6 characters';
+                              }
+                              return null;
+                            },
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 14),
+                            Text(_error!, style: const TextStyle(color: Colors.red)),
+                          ],
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FrostedButton(
+                              label: _loading ? '' : "Register",
+                              onTap: _loading
+                                  ? null
+                                  : () {
+                                if (_formKey.currentState!.validate()) {
+                                  _handleRegister();
+                                }
+                              },
+                              loading: _loading,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text("Already have an account? ",
+                                  style: TextStyle(color: Colors.white70)),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pushNamed(context, '/login');
+                                },
+                                child: const Text(
+                                  "Log in",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shared frosted glass button widget
+class FrostedButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+  const FrostedButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.35),
+              width: 1.5,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: onTap,
+              splashColor: Colors.white.withOpacity(0.08),
+              highlightColor: Colors.white.withOpacity(0.07),
+              child: Center(
+                child: loading
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.2,
+                  ),
+                )
+                    : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),

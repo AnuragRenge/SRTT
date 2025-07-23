@@ -3,6 +3,7 @@ import 'package:srt_travel_app/screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/adminhomescreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,13 +17,36 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sai Ram Tours',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue,fontFamily: 'Poppins'),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Poppins'),
       initialRoute: '/',
       routes: {
         '/': (_) => const WelcomeScreen(),
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
-        '/home': (_) =>  HomeScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/home') {
+          final args = settings.arguments as Map<String, dynamic>? ?? {};
+          final userRole = args['role'] ?? '';
+          final username = args['username'] ?? '';
+          final email = args['email'] ?? '';
+          final id = args['id'] ?? '';
+
+          if (userRole == 'admin') {
+            return MaterialPageRoute(
+              builder: (_) => AdminHomeScreen(
+                userRole: userRole, username: username, email: email, id: id,
+              ),
+            );
+          } else {
+            return MaterialPageRoute(
+              builder: (_) => HomeScreen(
+                userRole: userRole, username: username, email: email, id: id,
+              ),
+            );
+          }
+        }
+        return null;
       },
     );
   }

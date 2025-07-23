@@ -6,7 +6,7 @@ class ApiService {
   static const String baseUrl = 'http://10.0.2.2:30306';
 
   // Login and store JWT token
-  Future<bool> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     final response = await http.post(
       url,
@@ -19,7 +19,13 @@ class ApiService {
       final token = data['token'];
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt_token', token);
-      return true;
+      return {
+        'success': true,
+        'role': data['role'],
+        'username': data['username'],
+        'email': data['email'],
+        'id': data['id'],
+      };
     } else {
       try {
         final data = jsonDecode(response.body);
@@ -107,4 +113,51 @@ class ApiService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
+  // --------- LEADS API METHODS -----------
+  /// Fetches list of leads from backend
+  Future<List<Map<String, dynamic>>> getLeads() async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/leads'); // Change path if different
+
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      // Assume response.body is a JSON array as per your sample
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      // Ensure safe conversion to list of Map<String, dynamic>
+      return jsonList.cast<Map<String, dynamic>>();
+    } else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load leads (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load leads (${response.statusCode})');
+      }
+    }
+  }
+  // POST: Create new Lead (no duplicate based on Phone)
+  Future<int> createLead(Map<String, dynamic> leadData) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/leads'); // Update path if needed
+
+    final response = await http.post(
+      url,
+      headers: _buildHeaders(token),
+      body: jsonEncode(leadData),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data['id'];
+    } else if (response.statusCode == 409) {
+      throw Exception('Duplicate lead detected.');
+    } else {
+      try {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to create lead (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to create lead (${response.statusCode})');
+      }
+    }
+  }
+
+
 }

@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class HomeScreen extends StatelessWidget {
-  HomeScreen({Key? key}) : super(key: key);
+  final String userRole;
+  final String username;
+  final String email;
+  final dynamic id;
+
+  HomeScreen({
+    super.key,
+    required this.userRole,
+    required this.username,
+    required this.email,
+    this.id,
+  });
 
   final ApiService _apiService = ApiService();
 
@@ -23,7 +34,9 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(child: Text('Welcome to the Dashboard!')),
+      body: Center(
+        child: Text('Welcome, $username ($email), Role: $userRole'),
+      ),
     );
   }
 }

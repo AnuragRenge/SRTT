@@ -1,9 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
-import '../widgets/in_app_notification.dart'; // import your widget
+import '../widgets/in_app_notification.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -16,10 +18,58 @@ class _LoginScreenState extends State<LoginScreen> {
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
   final ApiService _apiService = ApiService();
+
   bool _loading = false;
+  bool _obscure = true;
+  bool _rememberMe = false;
 
   String? _notificationMessage;
   bool _showNotification = false;
+
+  // --- XOR encoding for demo only! Do NOT use this in production! ---
+  String xorEncode(String text, String key) {
+    return String.fromCharCodes(List.generate(
+        text.length, (i) => text.codeUnitAt(i) ^ key.codeUnitAt(i % key.length)));
+  }
+
+  // Save email and password if "Remember Me" is checked
+  Future<void> _saveRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('remembered_email', _emailController.text.trim());
+      await prefs.setString(
+          'remembered_password', xorEncode(_passwordController.text.trim(), "mysuperkey"));
+    } else {
+      await prefs.remove('remembered_email');
+      await prefs.remove('remembered_password');
+    }
+  }
+
+  // Load any remembered credentials on startup
+  Future<void> _loadRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('remembered_email');
+    final encPw = prefs.getString('remembered_password');
+    String? pw;
+    if (encPw != null) {
+      pw = xorEncode(encPw, "mysuperkey");
+    }
+    setState(() {
+      if (email != null) {
+        _rememberMe = true;
+        _emailController.text = email;
+      }
+      if (pw != null && pw.isNotEmpty) {
+        _passwordController.text = pw;
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedCredentials();
+  }
 
   @override
   void dispose() {
@@ -55,67 +105,89 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     try {
-      final success = await _apiService.login(
+      final result = await _apiService.login(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-      if (success) {
-        Navigator.pushReplacementNamed(context, '/home');
+      if (result['success'] == true) {
+        await _saveRememberedCredentials();
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: {
+            'role': result['role'],
+            'username': result['username'],
+            'email': result['email'],
+            'id': result['id'],
+          },
+        );
       }
     } catch (e) {
-      String msg = e.toString().replaceAll("Exception: ", "") ?? "Login failed";
+      String msg = e.toString().replaceAll("Exception: ", "") ;
       if (msg.trim().isEmpty || msg.toLowerCase().contains("401") || msg.contains("Login failed")) {
         msg = "Invalid email or password";
       }
       _showTopNotification(msg);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE3F0FF), Color(0xFFBBD2EC)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Image
+          Image.asset(
+            'assets/background.jpg',
+            fit: BoxFit.cover,
           ),
-        ),
-        child: Center(
-          child: Stack(
-            children: [
-              if (_showNotification && _notificationMessage != null)
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.18,
-                  left: 25,
-                  right: 25,
-                  child: InAppNotification(
-                    message: _notificationMessage!,
-                    onClose: () => setState(() => _showNotification = false),
-                  ),
-                ),
-              // Login card
-              Align(
-                alignment: Alignment.center,
-                child: SingleChildScrollView(
+          // Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black.withOpacity(0.18),
+                  Colors.black.withOpacity(0.32)
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          // In-app notification
+          if (_showNotification && _notificationMessage != null)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.15,
+              left: 25,
+              right: 25,
+              child: InAppNotification(
+                message: _notificationMessage!,
+                onClose: () => setState(() => _showNotification = false),
+              ),
+            ),
+          // Login Card
+          Align(
+            alignment: Alignment.center,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.87),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blueGrey[100]!.withOpacity(0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      color: Colors.white.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.35),
+                        width: 1.5,
+                      ),
                     ),
                     child: Form(
                       key: _formKey,
@@ -124,9 +196,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Text(
                             "Login",
-                            style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                              color: Colors.black,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 8,
+                                  color: Colors.black.withOpacity(0.4),
+                                  offset: const Offset(1, 2),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 28),
@@ -135,10 +216,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             focusNode: _emailFocus,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
                               labelText: "Email",
-                              prefixIcon: Icon(Icons.email_outlined),
+                              prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
+                            onFieldSubmitted: (_) {
+                              FocusScope.of(context).requestFocus(_passwordFocus);
+                            },
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Email is required';
@@ -148,20 +240,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
                               return null;
                             },
-                            onFieldSubmitted: (_) {
-                              FocusScope.of(context).requestFocus(_passwordFocus);
-                            },
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _passwordController,
                             focusNode: _passwordFocus,
-                            obscureText: true,
-                            textInputAction: TextInputAction.done,
-                            decoration: const InputDecoration(
+                            obscureText: _obscure,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
                               labelText: "Password",
-                              prefixIcon: Icon(Icons.lock_outline),
+                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure ? Icons.visibility_off : Icons.visibility,
+                                  color: Colors.white54,
+                                ),
+                                onPressed: () => setState(() => _obscure = !_obscure),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.10),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
+                            textInputAction: TextInputAction.done,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Password is required';
@@ -173,50 +277,54 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             onFieldSubmitted: (_) => _handleLogin(),
                           ),
-                          const SizedBox(height: 30),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[700],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                          const SizedBox(height: 0),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                activeColor: Colors.white70,
+                                checkColor: Colors.blue,
+                                onChanged: (val) {
+                                  setState(() => _rememberMe = val ?? false);
+                                },
+                              ),
+                              const Text(
+                                'Remember Me',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
                                 ),
                               ),
-                              onPressed: _loading
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FrostedButton(
+                              label: _loading ? '' : 'Login',
+                              onTap: _loading
                                   ? null
                                   : () {
                                 if (_formKey.currentState!.validate()) {
                                   _handleLogin();
                                 }
                               },
-                              child: _loading
-                                  ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                                  : const Text(
-                                  "Login", style: TextStyle(fontSize: 16, color: Colors.white)),
+                              loading: _loading,
                             ),
                           ),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text("Not registered? "),
+                              const Text("Not registered? ",
+                                  style: TextStyle(color: Colors.white70)),
                               GestureDetector(
-                                onTap: () {
-                                  Navigator.pushNamed(context, '/register');
-                                },
-                                child: Text(
+                                onTap: () => Navigator.pushNamed(context, '/register'),
+                                child: const Text(
                                   "Sign up now.",
                                   style: TextStyle(
-                                    color: Colors.blue[700],
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -229,7 +337,72 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Frosted Glass Button, updated to show a loading spinner if needed.
+class FrostedButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+  const FrostedButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.35),
+              width: 1.5,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: onTap,
+              splashColor: Colors.white.withOpacity(0.08),
+              highlightColor: Colors.white.withOpacity(0.07),
+              child: Center(
+                child: loading
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.2,
+                  ),
+                )
+                    : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
