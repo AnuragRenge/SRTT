@@ -67,7 +67,22 @@ class AdminHomeScreen extends StatelessWidget {
                   title: Text(item['label'] as String, style: const TextStyle(fontSize: 16)),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, item['route'] as String);
+                    // Pass user info as arguments only for Leads. Add similar logic for other routes if needed.
+                    if (item['route'] == '/leads') {
+                      Navigator.pushNamed(
+                        context,
+                        '/leads',
+                        arguments: {
+                          'role': userRole,
+                          'username': username,
+                          'email': email,
+                          'id': id,
+                        },
+                      );
+                    } else {
+                      // For all other routes, push with no arguments (or expand logic if needed)
+                      Navigator.pushNamed(context, item['route'] as String);
+                    }
                   },
                 )),
                 const Spacer(),

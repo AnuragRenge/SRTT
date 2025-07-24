@@ -24,7 +24,6 @@ class MyApp extends StatelessWidget {
         '/': (_) => const WelcomeScreen(),
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
-        '/leads': (context) => const LeadsListScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {
@@ -48,6 +47,23 @@ class MyApp extends StatelessWidget {
             );
           }
         }
+
+        if (settings.name == '/leads') {
+          final args = settings.arguments as Map<String, dynamic>? ?? {};
+          final userRole = args['role'] ?? '';
+          final username = args['username'] ?? '';
+          final email = args['email'] ?? '';
+          final id = args['id'] ?? '';
+          return MaterialPageRoute(
+            builder: (_) => LeadsListScreen(
+              userRole: userRole,
+              username: username,
+              email: email,
+              id: id,
+            ),
+          );
+        }
+
         return null;
       },
     );
