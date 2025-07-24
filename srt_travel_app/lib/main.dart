@@ -4,6 +4,7 @@ import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/adminhomescreen.dart';
+import 'screens/LeadsListScreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         '/': (_) => const WelcomeScreen(),
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
+        '/leads': (context) => const LeadsListScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {

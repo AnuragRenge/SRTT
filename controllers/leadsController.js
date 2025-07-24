@@ -26,6 +26,13 @@ exports.getLeadById = async (req, res) => {
 exports.createLead = async (req, res) => {
   const { name, phone, email, source, status } = req.body;
   try {
+    const [existingLeads] = await db.query(
+      'SELECT id FROM leads WHERE phone = ?',
+      [phone]
+    );
+    if (existingLeads.length > 0) {
+      return res.status(409).json({ error: 'Lead with this phone number already exists' });
+    }
     const [result] = await db.query(
       'INSERT INTO leads (name, phone, email,source,status) VALUES (?, ?, ?, ?, ?)',
       [name, phone, email, source, status]
