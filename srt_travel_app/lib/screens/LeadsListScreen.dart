@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'create_lead_screen.dart';
 import '../widgets/in_app_notification.dart';
+import 'lead_detail_screen.dart';
 
 class LeadsListScreen extends StatefulWidget {
   final String username;
@@ -90,10 +91,9 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
     _leadsFuture.then((leads) {
       if (mounted) {
         leads.sort((a, b) {
-          // If your dates are ISO8601 strings, parse with DateTime.parse.
           final adate = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
           final bdate = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-          return bdate.compareTo(adate); // DESCENDING most-recent-first (b - a)
+          return bdate.compareTo(adate);
         });
         setState(() {
           _allLeads = leads;
@@ -101,6 +101,11 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
         });
       }
     });
+  }
+
+  Future<void> _pullRefresh() async {
+    _loadLeads();
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   void _logout() async {
@@ -390,58 +395,72 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                   children: [
                     _buildSearchAndFilterBar(),
                     Expanded(
-                      child: _filteredLeads.isEmpty
-                          ? const Center(child: Text("No leads found."))
-                          : ListView.builder(
-                        itemCount: _filteredLeads.length,
-                        itemBuilder: (context, index) {
-                          final lead = _filteredLeads[index];
-                          final name = lead['name'] ?? '[No Name]';
-                          final status = lead['status'] ?? '';
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            elevation: 2,
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.blue[100],
-                                child: Text(
-                                  _getInitials(name),
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                      child: RefreshIndicator(
+                        onRefresh: _pullRefresh,
+                        child: _filteredLeads.isEmpty
+                            ? const Center(child: Text("No leads found."))
+                            : ListView.builder(
+                          itemCount: _filteredLeads.length,
+                          itemBuilder: (context, index) {
+                            final lead = _filteredLeads[index];
+                            final name = lead['name'] ?? '[No Name]';
+                            final status = lead['status'] ?? '';
+                            return Card(
+                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              elevation: 2,
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.blue[100],
+                                  child: Text(
+                                    _getInitials(name),
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              title: Text(name),
-                              subtitle: Row(
-                                children: [
-                                  Text(
-                                    lead['phone'] ?? 'NA',
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                  const Spacer(),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: _getStatusColor(status).withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(15),
+                                title: Text(name),
+                                subtitle: Row(
+                                  children: [
+                                    Text(
+                                      lead['phone'] ?? 'NA',
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
                                     ),
-                                    child: Text(
-                                      status.isNotEmpty
-                                          ? status[0].toUpperCase() + status.substring(1)
-                                          : "NA",
-                                      style: TextStyle(
-                                        color: _getStatusColor(status),
-                                        fontWeight: FontWeight.w600,
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: _getStatusColor(status).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Text(
+                                        status.isNotEmpty
+                                            ? status[0].toUpperCase() + status.substring(1)
+                                            : "NA",
+                                        style: TextStyle(
+                                          color: _getStatusColor(status),
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LeadDetailScreen(leadId: lead['id']),
+                                    ),
+                                  );
+                                  if (result is Map && result['updated'] == true) {
+                                    _loadLeads();
+                                  }
+                                },
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],

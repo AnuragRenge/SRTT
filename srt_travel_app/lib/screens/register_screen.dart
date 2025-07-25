@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/in_app_notification.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -21,8 +22,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _mobileFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
-  String? _error;
   bool _loading = false;
+  String? _notificationMessage;
+  bool _showNotification = false;
   final _apiService = ApiService();
 
   @override
@@ -48,11 +50,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return mobileRegex.hasMatch(mobile);
   }
 
+  void _showTopNotification(String message) {
+    setState(() {
+      _notificationMessage = message;
+      _showNotification = true;
+    });
+    Future.delayed(const Duration(seconds: 15), () {
+      if (mounted && _showNotification) {
+        setState(() {
+          _showNotification = false;
+          _notificationMessage = null;
+        });
+      }
+    });
+  }
+
   void _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       final res = await _apiService.register({
@@ -66,9 +82,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
-      });
+      String errorMsg = e.toString();
+      // Detect 409 or duplicate user
+      if (errorMsg.contains('409')) {
+        _showTopNotification("User Already exist with the same Mobile/Email.");
+      } else {
+        _showTopNotification(errorMsg.replaceAll('Exception: ', ''));
+      }
     } finally {
       setState(() {
         _loading = false;
@@ -98,6 +118,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
+          // In-app notification at the top
+          if (_showNotification && _notificationMessage != null)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.10,
+              left: 25,
+              right: 25,
+              child: InAppNotification(
+                message: _notificationMessage!,
+                onClose: () => setState(() => _showNotification = false),
+              ),
+            ),
           Align(
             alignment: Alignment.center,
             child: SingleChildScrollView(
@@ -258,10 +289,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          if (_error != null) ...[
-                            const SizedBox(height: 14),
-                            Text(_error!, style: const TextStyle(color: Colors.red)),
-                          ],
                           const SizedBox(height: 30),
                           SizedBox(
                             width: double.infinity,

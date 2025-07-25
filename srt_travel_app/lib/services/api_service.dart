@@ -28,8 +28,8 @@ class ApiService {
       };
     } else {
       try {
-        final data = jsonDecode(response.body);
-        throw Exception(data['message'] ?? 'Login failed (${response.statusCode})');
+        //final data = jsonDecode(response.body);
+        throw Exception('Login Attempt failed:${response.statusCode}');
       } catch (_) {
         throw Exception('Login failed (${response.statusCode})');
       }
@@ -134,7 +134,23 @@ class ApiService {
       }
     }
   }
-  // POST: Create new Lead (no duplicate based on Phone)
+  /// fetches lead by Id
+  Future<Map<String, dynamic>?> getLeadById(dynamic id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/leads/$id');
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load leads (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load leads (${response.statusCode})');
+      }
+    }
+  }
+  /// POST: Create new Lead (no duplicate based on Phone)
   Future<int> createLead(Map<String, dynamic> leadData) async {
     final token = await _getToken();
     final url = Uri.parse('$baseUrl/leads'); // Update path if needed
@@ -156,6 +172,24 @@ class ApiService {
       } catch (_) {
         throw Exception('Failed to create lead (${response.statusCode})');
       }
+    }
+  }
+  /// PUT:Update the existing leads
+  /// Update lead by id with only selected fields.
+  /// Returns the server's decoded JSON Map (e.g. {'message': ...})
+  Future<Map<String, dynamic>> updateLead(dynamic id, Map<String, dynamic> updatedFields) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/leads/$id');
+    final response = await http.put(
+      url,
+      headers: _buildHeaders(token),
+      body: jsonEncode(updatedFields),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return decoded as Map<String, dynamic>;
+    } else {
+      throw Exception(decoded['message'] ?? 'Failed to update lead (${response.statusCode})');
     }
   }
 

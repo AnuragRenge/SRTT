@@ -84,6 +84,8 @@ class AdminHomeScreen extends StatelessWidget {
                       Navigator.pushNamed(context, item['route'] as String);
                     }
                   },
+                  titleAlignment: null,
+                  isThreeLine: null,
                 )),
                 const Spacer(),
                 ListTile(

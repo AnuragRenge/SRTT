@@ -10,6 +10,13 @@ router.post('/register', async (req, res) => {
   const { username, email, password, role,mobile } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
+    const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ? OR mobile = ?',[email, mobile] );
+
+    if (existingUsers.length > 0) {
+      return res.status(409).json({
+        error: 'User already exists with the same email or mobile number.'
+      });
+    }
     const [result] = await db.query(
       'INSERT INTO users (username, email, password, role,mobile, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
       [username, email, hashedPassword, role, mobile || 'user',new Date()]
