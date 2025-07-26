@@ -4,7 +4,7 @@ import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/adminhomescreen.dart';
-import 'screens/LeadsListScreen.dart';
+import 'screens/leads_list_screen.dart';
 
 void main() {
   runApp(const MyApp());

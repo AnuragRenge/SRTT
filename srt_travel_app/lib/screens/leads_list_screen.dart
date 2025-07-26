@@ -32,53 +32,12 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
   ];
   List<String> _selectedStatuses = [];
 
+  // Notification state
   String? _notificationMessage;
   bool _showNotification = false;
 
-  List<Map<String, dynamic>> get _navOptions => [
-    {
-      'label': "Home",
-      'icon': Icons.home,
-      'route': '/home',
-      'needsArgs': true,
-    },
-    {
-      'label': "Tours",
-      'icon': Icons.map,
-      'route': '/tours',
-      'needsArgs': false,
-    },
-    {
-      'label': "Company",
-      'icon': Icons.business,
-      'route': '/company',
-      'needsArgs': false,
-    },
-    {
-      'label': "Bookings",
-      'icon': Icons.book,
-      'route': '/bookings',
-      'needsArgs': false,
-    },
-    {
-      'label': "Drivers",
-      'icon': Icons.people_outline,
-      'route': '/drivers',
-      'needsArgs': false,
-    },
-    {
-      'label': "Vehicles",
-      'icon': Icons.directions_car,
-      'route': '/vehicles',
-      'needsArgs': false,
-    },
-    {
-      'label': "Users",
-      'icon': Icons.people,
-      'route': '/users',
-      'needsArgs': false,
-    },
-  ];
+  // Track which lead (index) is in long pressed/delete mode
+  int? _longPressedIndex;
 
   @override
   void initState() {
@@ -232,6 +191,60 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
     });
   }
 
+  void _onDeleteLead(Map<String, dynamic> lead) async {
+    final confirmed = await _confirmDeleteLead(context, lead['name']);
+    if (confirmed) {
+      try {
+        final success = await ApiService().deleteLead(lead['id']);
+        if (success) {
+          _showTopNotification("Lead deleted successfully!", color: Colors.green);
+          _loadLeads();
+        } else {
+          _showTopNotification("Failed to delete lead.", color: Colors.red);
+        }
+      } catch (e) {
+        _showTopNotification("Error: ${e.toString()}", color: Colors.red);
+      }
+    }
+    setState(() {
+      _longPressedIndex = null;
+    });
+  }
+
+  Future<bool> _confirmDeleteLead(BuildContext context, String? leadName) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Confirm Delete",
+            style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to delete the lead \"${leadName ?? ''}\"?"),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.grey[300],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("Cancel", style: TextStyle(color: Colors.black)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            label: const Text("Delete",style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Widget _buildSearchAndFilterBar() {
     final bool filterActive = _selectedStatuses.isNotEmpty;
     final Color iconColor = filterActive ? _getStatusColor(_selectedStatuses.first) : Colors.blue;
@@ -294,6 +307,51 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
+    final List<Map<String, dynamic>> _navOptions = [
+      {
+        'label': "Home",
+        'icon': Icons.home,
+        'route': '/home',
+        'needsArgs': true,
+      },
+      {
+        'label': "Tours",
+        'icon': Icons.map,
+        'route': '/tours',
+        'needsArgs': false,
+      },
+      {
+        'label': "Company",
+        'icon': Icons.business,
+        'route': '/company',
+        'needsArgs': false,
+      },
+      {
+        'label': "Bookings",
+        'icon': Icons.book,
+        'route': '/bookings',
+        'needsArgs': false,
+      },
+      {
+        'label': "Drivers",
+        'icon': Icons.people_outline,
+        'route': '/drivers',
+        'needsArgs': false,
+      },
+      {
+        'label': "Vehicles",
+        'icon': Icons.directions_car,
+        'route': '/vehicles',
+        'needsArgs': false,
+      },
+      {
+        'label': "Users",
+        'icon': Icons.people,
+        'route': '/users',
+        'needsArgs': false,
+      },
+    ];
+
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -405,59 +463,119 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                             final lead = _filteredLeads[index];
                             final name = lead['name'] ?? '[No Name]';
                             final status = lead['status'] ?? '';
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              elevation: 2,
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue[100],
-                                  child: Text(
-                                    _getInitials(name),
-                                    style: const TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(name),
-                                subtitle: Row(
-                                  children: [
-                                    Text(
-                                      lead['phone'] ?? 'NA',
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                    const Spacer(),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(status).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
+
+                            final bool isLongPressed = _longPressedIndex == index;
+                            return Column(
+                              children: [
+                                Card(
+                                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  elevation: 2,
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: Colors.blue[100],
                                       child: Text(
-                                        status.isNotEmpty
-                                            ? status[0].toUpperCase() + status.substring(1)
-                                            : "NA",
-                                        style: TextStyle(
-                                          color: _getStatusColor(status),
-                                          fontWeight: FontWeight.w600,
+                                        _getInitials(name),
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                                onTap: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => LeadDetailScreen(leadId: lead['id']),
+                                    title: Text(name),
+                                    subtitle: Row(
+                                      children: [
+                                        Text(
+                                          lead['phone'] ?? 'NA',
+                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                                        ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(status).withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(15),
+                                          ),
+                                          child: Text(
+                                            status.isNotEmpty
+                                                ? status[0].toUpperCase() + status.substring(1)
+                                                : "NA",
+                                            style: TextStyle(
+                                              color: _getStatusColor(status),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  );
-                                  if (result is Map && result['updated'] == true) {
-                                    _loadLeads();
-                                  }
-                                },
-                              ),
+                                    onTap: () async {
+                                      setState(() {_longPressedIndex = null;});
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => LeadDetailScreen(leadId: lead['id']),
+                                        ),
+                                      );
+                                      if (result is Map && result['updated'] == true) {
+                                        _loadLeads();
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      setState(() {
+                                        if (_longPressedIndex == index) {
+                                          _longPressedIndex = null;
+                                        } else {
+                                          _longPressedIndex = index;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ),
+                                if (isLongPressed)
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.grey.withOpacity(0.13), blurRadius: 2)
+                                        ]
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton.icon(
+                                          style: TextButton.styleFrom(
+                                            backgroundColor: Colors.grey[300],
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          ),
+                                          icon: const Icon(Icons.cancel, color: Colors.black45),
+                                          label: const Text("Cancel", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                          onPressed: () {
+                                            setState(() {
+                                              _longPressedIndex = null;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(width: 14),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          ),
+                                          icon: const Icon(Icons.delete, color: Colors.white),
+                                          label: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                          onPressed: () {
+                                            _onDeleteLead(lead);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             );
                           },
                         ),
@@ -468,7 +586,6 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
               },
             ),
             if (_showNotification && _notificationMessage != null)
-            // Notification right below AppBar, with margin and dismiss on swipe
               Positioned(
                 top: kToolbarHeight + MediaQuery.of(context).padding.top + 10,
                 left: 16,
@@ -479,7 +596,10 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                   onDismissed: (_) => setState(() => _showNotification = false),
                   child: InAppNotification(
                     message: _notificationMessage!,
-                    color: (_notificationMessage == "Lead created successfully!" ? Colors.green : Colors.red),
+                    color: (_notificationMessage == "Lead created successfully!" ||
+                        _notificationMessage == "Lead deleted successfully!"
+                        ? Colors.green
+                        : Colors.red),
                     onClose: () => setState(() => _showNotification = false),
                   ),
                 ),

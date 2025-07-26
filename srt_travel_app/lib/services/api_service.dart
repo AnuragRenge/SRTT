@@ -175,8 +175,6 @@ class ApiService {
     }
   }
   /// PUT:Update the existing leads
-  /// Update lead by id with only selected fields.
-  /// Returns the server's decoded JSON Map (e.g. {'message': ...})
   Future<Map<String, dynamic>> updateLead(dynamic id, Map<String, dynamic> updatedFields) async {
     final token = await _getToken();
     final url = Uri.parse('$baseUrl/leads/$id');
@@ -192,6 +190,31 @@ class ApiService {
       throw Exception(decoded['message'] ?? 'Failed to update lead (${response.statusCode})');
     }
   }
+  /// DELETE: Delete the lead by [id].
+  /// Returns true if deleted, throws Exception if not.
+  Future<bool> deleteLead(dynamic id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/leads/$id');
+
+    final response = await http.delete(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      // Optionally check message value
+      if (body is Map && body['message'] == 'Lead deleted') {
+        return true;
+      } else {
+        throw Exception('Unexpected API response: $body');
+      }
+    } else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to delete lead (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to delete lead (${response.statusCode})');
+      }
+    }
+  }
+
 
 
 }
