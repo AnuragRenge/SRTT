@@ -5,6 +5,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/adminhomescreen.dart';
 import 'screens/leads_list_screen.dart';
+import 'screens/user_list_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,7 +40,8 @@ class MyApp extends StatelessWidget {
                 userRole: userRole, username: username, email: email, id: id,
               ),
             );
-          } else {
+          }
+          else {
             return MaterialPageRoute(
               builder: (_) => HomeScreen(
                 userRole: userRole, username: username, email: email, id: id,
@@ -56,6 +58,21 @@ class MyApp extends StatelessWidget {
           final id = args['id'] ?? '';
           return MaterialPageRoute(
             builder: (_) => LeadsListScreen(
+              userRole: userRole,
+              username: username,
+              email: email,
+              id: id,
+            ),
+          );
+        }
+        if (settings.name == '/users') {
+          final args = settings.arguments as Map<String, dynamic>? ?? {};
+          final userRole = args['role'] ?? '';
+          final username = args['username'] ?? '';
+          final email = args['email'] ?? '';
+          final id = args['id'] ?? '';
+          return MaterialPageRoute(
+            builder: (_) => UserListScreen(
               userRole: userRole,
               username: username,
               email: email,

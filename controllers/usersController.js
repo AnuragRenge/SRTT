@@ -38,7 +38,7 @@ exports.createUser = async (req, res) => {
 
 // PUT update user
 exports.updateUser = async (req, res) => {
-  const { username, email, password, role, mobile } = req.body;
+  const { username, email, password, role, mobile,is_active } = req.body;
   const fields = [];
   const values = [];
 
@@ -47,6 +47,7 @@ exports.updateUser = async (req, res) => {
   if (password !== undefined) { fields.push('password = ?'); values.push(password); }
   if (role !== undefined)     { fields.push('role = ?');     values.push(role); }
   if (mobile !== undefined)   { fields.push('mobile = ?');   values.push(mobile); }
+  if (is_active !== undefined)   { fields.push('is_active = ?');   values.push(is_active); }
 
   if (fields.length === 0) {
     return res.status(400).json({ error: 'No fields to update' });

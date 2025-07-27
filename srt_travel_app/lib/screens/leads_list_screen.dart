@@ -260,7 +260,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                 hintText: 'Search',
                 prefixIcon: const Icon(Icons.search, size: 22),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(color: Colors.blue),
                 ),
                 isDense: true,
@@ -348,7 +348,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
         'label': "Users",
         'icon': Icons.people,
         'route': '/users',
-        'needsArgs': false,
+        'needsArgs': true,
       },
     ];
 
@@ -383,7 +383,18 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                       'id': widget.id,
                     },
                   );
-                } else {
+                }else if (item['route'] == '/users' && item['needsArgs'] == true) {
+                  Navigator.pushNamed(
+                    context,
+                    '/users',
+                    arguments: {
+                      'role': widget.userRole,
+                      'username': widget.username,
+                      'email': widget.email,
+                      'id': widget.id,
+                    },
+                  );
+                }else {
                   Navigator.pushNamed(context, item['route'] as String);
                 }
               },

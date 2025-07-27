@@ -79,7 +79,15 @@ class AdminHomeScreen extends StatelessWidget {
                           'id': id,
                         },
                       );
-                    } else {
+                    }else if (item['route'] == '/users') {
+                      Navigator.pushNamed(
+                        context,
+                        '/users',arguments: {'role': userRole,
+                        'username': username,
+                        'email': email,
+                        'id': id,},
+                      );
+                    }else {
                       // For all other routes, push with no arguments (or expand logic if needed)
                       Navigator.pushNamed(context, item['route'] as String);
                     }

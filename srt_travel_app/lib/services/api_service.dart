@@ -215,6 +215,59 @@ class ApiService {
     }
   }
 
+  //------------Lead API Methods ENDs HERE-----------
 
+  // ------------- USER API METHODS ---------
+  ///GET ALL LEADS
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/users'); // Change path if different
 
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      // Assume response.body is a JSON array as per your sample
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      // Ensure safe conversion to list of Map<String, dynamic>
+      return jsonList.cast<Map<String, dynamic>>();
+    } else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load users (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load users (${response.statusCode})');
+      }
+    }
+  }
+  /// fetches lead by Id
+  Future<Map<String, dynamic>?> getUserById(dynamic id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/users/$id');
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load users (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load users (${response.statusCode})');
+      }
+    }
+  }
+  /// PUT:Update the existing leads
+  Future<Map<String, dynamic>> updateUser(dynamic id, Map<String, dynamic> updatedFields) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/users/$id');
+    final response = await http.put(
+      url,
+      headers: _buildHeaders(token),
+      body: jsonEncode(updatedFields),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return decoded as Map<String, dynamic>;
+    } else {
+      throw Exception(decoded['message'] ?? 'Failed to update user record (${response.statusCode})');
+    }
+  }
 }

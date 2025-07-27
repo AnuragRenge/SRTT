@@ -31,8 +31,13 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [users] = await db.query('SELECT * FROM users WHERE email = ? AND is_active = 1', [email]);
     const user = users[0];
+    const [userss] = await db.query('SELECT * FROM users WHERE is_active = 1');
+    const activeuser = userss[0];
+
+    if(!activeuser) return res.status(401).json({message: 'User is not active in system'})
+
     if (!user) return res.status(401).json({ message: 'Invalid email or password' });
 
     const match = await bcrypt.compare(password, user.password);
