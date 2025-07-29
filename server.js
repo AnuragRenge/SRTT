@@ -21,6 +21,9 @@ app.use('/tours', toursRouter);
 app.use('/vehicles', vehiclesRouter);
 app.use('/drivers', driversRouter);
 app.use('/companies', companiesRouter);
+app.use('/',(req,res)=>{
+    res.send('Welcome To The Server Home Page')
+})
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
