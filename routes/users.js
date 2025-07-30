@@ -6,6 +6,10 @@ const usersController = require('../controllers/usersController');
 // GET all users
 router.get('/', usersController.getUsers);
 
+//GET all user by page
+
+router.get('/page/',usersController.getUserspage);
+
 // GET user by ID
 router.get('/:id', usersController.getUserById);
 

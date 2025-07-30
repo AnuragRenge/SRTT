@@ -11,6 +11,38 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+// GET all users with paginaion
+// GET all users with pagination and field selection
+exports.getUserspage = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;     // Default to page 1
+  const limit = parseInt(req.query.limit) || 15;  // Default 20 records per page
+  const offset = (page - 1) * limit;
+
+  try {
+    const start = Date.now(); // Log start time
+
+    // Only select necessary fields (avoid SELECT *)
+    const [rows] = await db.query(
+      'SELECT id, username, email, role, mobile, is_active, updated_at,last_login,created_at FROM users LIMIT ? OFFSET ?',
+      [limit, offset]
+    );
+
+    const end = Date.now(); // Log end time
+    console.log(`Query time: ${end - start}ms`);
+
+    res.json({
+      page,
+      limit,
+      data: rows
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
 // GET user by ID
 exports.getUserById = async (req, res) => {
   try {
