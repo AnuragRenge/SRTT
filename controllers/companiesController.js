@@ -43,7 +43,7 @@ exports.updateCompany = async (req, res) => {
 
   if (req.body.name !== undefined)           { fields.push('name = ?'); values.push(req.body.name); }
   if (req.body.phone !== undefined)          { fields.push('phone = ?'); values.push(req.body.phone); }
-  if (req.body.address !== undefined)          { fields.push('address = ?'); values.push(req.body.address); }
+  if (req.body.address !== undefined)          { fields.push('address = ?'); values.push(req.body.address); } 
   if (req.body.email !== undefined)          { fields.push('email = ?'); values.push(req.body.email); }
   if (req.body.localcharge !== undefined)    { fields.push('localcharge = ?'); values.push(req.body.localcharge); }
   if (req.body.outstationcharge !== undefined){ fields.push('outstationcharge = ?'); values.push(req.body.outstationcharge); }
