@@ -24,13 +24,13 @@ class AdminHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
 // Drawer menu options for admin
     final navOptions = [
-      {'label': "Leads", 'icon': Icons.assignment, 'route': '/leads'},
-      {'label': "Tours", 'icon': Icons.map, 'route': '/tours'},
-      {'label': "Company", 'icon': Icons.business, 'route': '/company'},
-      {'label': "Bookings", 'icon': Icons.book, 'route': '/bookings'},
-      {'label': "Drivers", 'icon': Icons.people_outline, 'route': '/drivers'},
-      {'label': "Vehicles", 'icon': Icons.directions_car, 'route': '/vehicles'},
-      {'label': "Users", 'icon': Icons.people, 'route': '/users'},
+      {'label': "Leads", 'icon': Icons.assignment, 'route': '/leads','needsArgs': true,},
+      {'label': "Tours", 'icon': Icons.map, 'route': '/tours','needsArgs': true,},
+      {'label': "Company", 'icon': Icons.business, 'route': '/company','needsArgs': true,},
+      {'label': "Bookings", 'icon': Icons.book, 'route': '/bookings','needsArgs': true,},
+      {'label': "Drivers", 'icon': Icons.people_outline, 'route': '/drivers','needsArgs': true,},
+      {'label': "Vehicles", 'icon': Icons.directions_car, 'route': '/vehicles','needsArgs': true,},
+      {'label': "Users", 'icon': Icons.people, 'route': '/users','needsArgs': true,},
     ];
 
     // ignore: deprecated_member_use
@@ -50,6 +50,7 @@ class AdminHomeScreen extends StatelessWidget {
           ],
         ),
         drawer: Drawer(
+          backgroundColor: Colors.white,
           child: SafeArea(
             child: Column(
               children: [
@@ -67,11 +68,10 @@ class AdminHomeScreen extends StatelessWidget {
                   title: Text(item['label'] as String, style: const TextStyle(fontSize: 16)),
                   onTap: () {
                     Navigator.pop(context);
-                    // Pass user info as arguments only for Leads. Add similar logic for other routes if needed.
-                    if (item['route'] == '/leads') {
+                    if (item['needsArgs'] == true) {
                       Navigator.pushNamed(
                         context,
-                        '/leads',
+                        item['route'] as String,
                         arguments: {
                           'role': userRole,
                           'username': username,
@@ -79,16 +79,7 @@ class AdminHomeScreen extends StatelessWidget {
                           'id': id,
                         },
                       );
-                    }else if (item['route'] == '/users') {
-                      Navigator.pushNamed(
-                        context,
-                        '/users',arguments: {'role': userRole,
-                        'username': username,
-                        'email': email,
-                        'id': id,},
-                      );
-                    }else {
-                      // For all other routes, push with no arguments (or expand logic if needed)
+                    } else {
                       Navigator.pushNamed(context, item['route'] as String);
                     }
                   },

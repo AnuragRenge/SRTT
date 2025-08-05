@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/in_app_notification.dart';
 import 'user_detail_screen.dart';
+import 'package:flutter/cupertino.dart';
 
 class UserListScreen extends StatefulWidget {
   final String username;
@@ -252,7 +253,7 @@ class _UserListScreenState extends State<UserListScreen> {
       },
       {
         'label': "Leads",
-        'icon': Icons.people,
+        'icon': Icons.assignment,
         'route': '/leads',
         'needsArgs': true,
       },
@@ -260,35 +261,36 @@ class _UserListScreenState extends State<UserListScreen> {
         'label': "Tours",
         'icon': Icons.map,
         'route': '/tours',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Company",
         'icon': Icons.business,
         'route': '/company',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Bookings",
         'icon': Icons.book,
         'route': '/bookings',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Drivers",
         'icon': Icons.people_outline,
         'route': '/drivers',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Vehicles",
         'icon': Icons.directions_car,
         'route': '/vehicles',
-        'needsArgs': false,
+        'needsArgs': true,
       },
     ];
 
     return Drawer(
+      backgroundColor: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
@@ -308,10 +310,10 @@ class _UserListScreenState extends State<UserListScreen> {
               title: Text(item['label'] as String, style: const TextStyle(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
-                if (item['route'] == '/home' && item['needsArgs'] == true) {
+                if (item['needsArgs'] == true) {
                   Navigator.pushNamed(
                     context,
-                    '/home',
+                    item['route'] as String,
                     arguments: {
                       'role': widget.userRole,
                       'username': widget.username,
@@ -319,18 +321,7 @@ class _UserListScreenState extends State<UserListScreen> {
                       'id': widget.id,
                     },
                   );
-                }else if (item['route'] == '/leads' && item['needsArgs'] == true) {
-                  Navigator.pushNamed(
-                    context,
-                    '/leads',
-                    arguments: {
-                      'role': widget.userRole,
-                      'username': widget.username,
-                      'email': widget.email,
-                      'id': widget.id,
-                    },
-                  );
-                }else {
+                } else {
                   Navigator.pushNamed(context, item['route'] as String);
                 }
               },
@@ -374,7 +365,7 @@ class _UserListScreenState extends State<UserListScreen> {
                   _filteredUsers = _allUsers;
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)));
                 }
                 if (snapshot.hasError) {
                   return Center(
@@ -398,6 +389,7 @@ class _UserListScreenState extends State<UserListScreen> {
                             final mobile = user['mobile']?.toString() ?? '';
                             final role = user['role'] ?? '';
                             return Card(
+                              color: Colors.white,
                               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               elevation: 2,
                               child: ListTile(

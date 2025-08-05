@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import 'create_lead_screen.dart';
 import '../widgets/in_app_notification.dart';
 import 'lead_detail_screen.dart';
+import 'package:flutter/cupertino.dart';
 
 class LeadsListScreen extends StatefulWidget {
   final String username;
@@ -318,31 +319,31 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
         'label': "Tours",
         'icon': Icons.map,
         'route': '/tours',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Company",
         'icon': Icons.business,
         'route': '/company',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Bookings",
         'icon': Icons.book,
         'route': '/bookings',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Drivers",
         'icon': Icons.people_outline,
         'route': '/drivers',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Vehicles",
         'icon': Icons.directions_car,
         'route': '/vehicles',
-        'needsArgs': false,
+        'needsArgs': true,
       },
       {
         'label': "Users",
@@ -353,6 +354,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
     ];
 
     return Drawer(
+      backgroundColor: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
@@ -372,10 +374,10 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
               title: Text(item['label'] as String, style: const TextStyle(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
-                if (item['route'] == '/home' && item['needsArgs'] == true) {
+                if (item['needsArgs'] == true) {
                   Navigator.pushNamed(
                     context,
-                    '/home',
+                    item['route'] as String,
                     arguments: {
                       'role': widget.userRole,
                       'username': widget.username,
@@ -383,18 +385,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                       'id': widget.id,
                     },
                   );
-                }else if (item['route'] == '/users' && item['needsArgs'] == true) {
-                  Navigator.pushNamed(
-                    context,
-                    '/users',
-                    arguments: {
-                      'role': widget.userRole,
-                      'username': widget.username,
-                      'email': widget.email,
-                      'id': widget.id,
-                    },
-                  );
-                }else {
+                } else {
                   Navigator.pushNamed(context, item['route'] as String);
                 }
               },
@@ -428,12 +419,12 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                   backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   foregroundColor: Colors.white,
-                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   elevation: 0,
                   side: BorderSide.none,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
-                icon: const Icon(Icons.add, size: 26, color: Colors.white),
+                icon: const Icon(Icons.add, size: 22, color: Colors.white),
                 label: const Text('Create Lead'),
                 onPressed: _showCreateLeadScreen,
               ),
@@ -452,7 +443,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                   _filteredLeads = _allLeads;
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)));
                 }
                 if (snapshot.hasError) {
                   return Center(
@@ -479,6 +470,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                             return Column(
                               children: [
                                 Card(
+                                  color: Colors.white,
                                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   elevation: 2,
                                   child: ListTile(

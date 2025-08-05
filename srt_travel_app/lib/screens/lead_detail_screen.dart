@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../widgets/in_app_notification.dart';
+import 'package:flutter/cupertino.dart';
 
 class LeadDetailScreen extends StatefulWidget {
   final dynamic leadId;
@@ -39,6 +40,11 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
   /// Show Save/Reset after ✔ pressed and validation passes
   bool showSaveReset = false;
 
+  /// ---- NEW: Saving indicator
+  bool _isSaving = false;
+
+  /// ---- NEW: Track if any save happened during this session (like UserDetailScreen)
+  bool _hasSavedAnyChange = false;
   /// Logic: true if anything is changed (for Save/Reset)
   bool get isChanged {
     if (leadData == null || initialData == null) return false;
@@ -189,13 +195,19 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
   }
 
   /// ---- The Save API, fetches new details on success so Updated At refreshes
-  Future<void> _saveChanges() async {
+  Future<bool> _saveChanges({bool andPop = false}) async {
+    setState(() {
+      _isSaving = true; // SET LOADING TRUE
+    });
     final updated = updatedFields;
     // Validation 1: Not all blank
     bool allBlank = !updated.values.any((v) => v != null && v.toString().trim().isNotEmpty);
     if (allBlank) {
       _showNotification("Cannot update with all fields blank.", color: Colors.red);
-      return;
+      setState(() {
+        _isSaving = false;
+      });
+      return false;
     }
     // Validation 2: If phone in update, recheck it (shouldn't, but for safety)
     if (updated.containsKey('phone')) {
@@ -204,16 +216,22 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
         _showNotification("Mobile must be exactly 10 digits.", color: Colors.red);
         _controllers['phone']?.text = initialData?['phone']?.toString() ?? '';
         leadData?['phone'] = initialData?['phone']?.toString() ?? '';
-        setState(() { showSaveReset = false; });
-        return;
+        setState(() {
+          showSaveReset = false;
+          _isSaving = false;
+        });
+        return false;
       }
       await _fetchAllOtherLeads();
       if (_allOtherLeads.any((l) => (l['phone'] ?? '').toString().trim() == phone)) {
         _showNotification("Another lead already exists with this mobile.", color: Colors.red);
         _controllers['phone']?.text = initialData?['phone']?.toString() ?? '';
         leadData?['phone'] = initialData?['phone']?.toString() ?? '';
-        setState(() { showSaveReset = false; });
-        return;
+        setState(() {
+          showSaveReset = false;
+          _isSaving = false;
+        });
+        return false;
       }
     }
 
@@ -233,17 +251,121 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
         _controllers['email']?.text = leadData?['email'] ?? '';
         _leadJustUpdated = true;
         showSaveReset = false;
+        _hasSavedAnyChange = true; // Track that save happened
       });
+
+      // On Save in dialog, pop and notify parent immediately
+      if (andPop && mounted) {
+        Future.delayed(const Duration(milliseconds: 400),
+                () => Navigator.of(context).pop({'updated': true}));
+      }
+
       Future.delayed(const Duration(seconds: 4), () {
         if (mounted) setState(() => showNotification = false);
       });
+      return true;
     } catch (e) {
       setState(() {
         notificationMessage = e.toString();
         notificationColor = Colors.red;
         showNotification = true;
       });
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false; // SET LOADING FALSE
+        });
+      }
     }
+  }
+
+  /// ---- UPDATED: Show dialog on back with unsaved changes (following UserDetailScreen pattern)
+  Future<bool> _maybeShowDiscardDialog() async {
+    if (isChanged) {
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Unsaved Changes',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          content: const Text(
+            'Data has not been saved. Do you want to save changes?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop(false); // Cancel: discard & go back
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop(true); // Proceed with save
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (result == true) {
+        // Save then pop on success
+        await _saveChanges(andPop: true);
+        return false; // pop will be handled by save
+      } else if (result == false) {
+        // Cancel was pressed - go back to previous page
+        Navigator.of(context).pop({'updated': _hasSavedAnyChange});
+        return false;
+      } else {
+        // Dialog was dismissed without selection - stay on current page
+        return false;
+      }
+    }
+    return true; // No unsaved edits, allow pop
+  }
+
+  /// ---- UPDATED: Handle back navigation (following UserDetailScreen pattern)
+  Future<bool> _onWillPop() async {
+    // If unsaved data, prompt; else, if any save happened in this session, signal parent to reload
+    if (isChanged) {
+      return await _maybeShowDiscardDialog();
+    }
+    if (_hasSavedAnyChange) {
+      Navigator.of(context).pop({'updated': true});
+      return false;
+    }
+    return true;
   }
 
   Widget _notificationWidget() {
@@ -275,6 +397,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     final val = (leadData?[fieldName] ?? '').toString();
     if (editingField == fieldName) {
       return Card(
+        color: Colors.white,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -322,6 +445,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
       );
     } else {
       return Card(
+        color: Colors.white,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -354,6 +478,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     final controller = _controllers[fieldName] ?? TextEditingController(text: val);
 
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -409,6 +534,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     required IconData icon,
   }) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -424,36 +550,30 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_leadJustUpdated) {
-          Navigator.pop(context, {'updated': true});
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Lead Details', style: TextStyle(color: Colors.blue)),
-          backgroundColor: Colors.white,
-          elevation: 0.5,
-          iconTheme: const IconThemeData(color: Colors.blue),
-        ),
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: Stack(
-          children: [
-            FutureBuilder<Map<String, dynamic>?>(
-              future: _leadFuture,
-              builder: (context, snapshot) {
-                if ((snapshot.connectionState == ConnectionState.waiting && leadData == null)) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final lead = leadData ?? snapshot.data;
-                if (lead == null || lead.isEmpty) {
-                  return const Center(child: Text('Lead not found.'));
-                }
-                final name = lead['name'] ?? '[No Name]';
-                return SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Lead Details', style: TextStyle(color: Colors.blue)),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        iconTheme: const IconThemeData(color: Colors.blue),
+      ),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          FutureBuilder<Map<String, dynamic>?>(
+            future: _leadFuture,
+            builder: (context, snapshot) {
+              if ((snapshot.connectionState == ConnectionState.waiting && leadData == null)) {
+                return const Center(child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)));
+              }
+              final lead = leadData ?? snapshot.data;
+              if (lead == null || lead.isEmpty) {
+                return const Center(child: Text('Lead not found.'));
+              }
+              final name = lead['name'] ?? '[No Name]';
+              return WillPopScope(
+                onWillPop: _onWillPop,
+                child: SingleChildScrollView(
                   child: Column(
                     children: [
                       Padding(
@@ -572,7 +692,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                             children: [
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: _saveChanges,
+                                  onPressed: () async => await _saveChanges(andPop: false),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blue,
                                     foregroundColor: Colors.white,
@@ -602,13 +722,23 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                         ),
                     ],
                   ),
-                );
-              },
+                ),
+              );
+            },
+          ),
+          if (showNotification && notificationMessage != null)
+            _notificationWidget(),
+          // ---- ADD LOADING OVERLAY FOR SAVE
+          if (_isSaving)
+            const Opacity(
+              opacity: 0.3,
+              child: ModalBarrier(dismissible: false, color: Colors.black),
             ),
-            if (showNotification && notificationMessage != null)
-              _notificationWidget(),
-          ],
-        ),
+          if (_isSaving)
+            const Center(
+              child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)),
+            ),
+        ],
       ),
     );
   }

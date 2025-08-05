@@ -5,6 +5,12 @@
       <w>adminhomescreen</w>
       <w>bdate</w>
       <w>glassmorphic</w>
+      <w>localcharge</w>
+      <w>localdist</w>
+      <w>lumpsum</w>
+      <w>lumpsumcharge</w>
+      <w>outstationcharge</w>
+      <w>outstationdistance</w>
     </words>
   </dictionary>
 </component>

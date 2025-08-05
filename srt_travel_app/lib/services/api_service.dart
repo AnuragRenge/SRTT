@@ -70,43 +70,6 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
   }
-
-  // Generic GET
-  Future<http.Response> get(String path) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl$path');
-    return await http.get(url, headers: _buildHeaders(token));
-  }
-
-  // Generic POST
-  Future<http.Response> post(String path, Map<String, dynamic> data) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl$path');
-    return await http.post(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(data),
-    );
-  }
-
-  // Generic PUT
-  Future<http.Response> put(String path, Map<String, dynamic> data) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl$path');
-    return await http.put(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(data),
-    );
-  }
-
-  // Generic DELETE
-  Future<http.Response> delete(String path) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl$path');
-    return await http.delete(url, headers: _buildHeaders(token));
-  }
-
   // Helper: build common headers
   Map<String, String> _buildHeaders(String? token) {
     return {
@@ -271,4 +234,109 @@ class ApiService {
       throw Exception(decoded['message'] ?? 'Failed to update user record (${response.statusCode})');
     }
   }
+
+//------------User API Methods ENDs HERE-----------
+//-------------------company API Starts HERE -----------
+  /// Fetches list of company from backend
+  Future<List<Map<String, dynamic>>> getCompany() async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/companies'); // Change path if different
+
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      // Assume response.body is a JSON array as per your sample
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      // Ensure safe conversion to list of Map<String, dynamic>
+      return jsonList.cast<Map<String, dynamic>>();
+    } else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load companies (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load companies (${response.statusCode})');
+      }
+    }
+  }
+  /// fetches company by Id
+  Future<Map<String, dynamic>?> getCompanyById(dynamic id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/companies/$id');
+    final response = await http.get(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to load companies (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to load companies (${response.statusCode})');
+      }
+    }
+  }
+  /// POST: Create new company (no duplicate based on Phone)
+  Future<int> createCompany(Map<String, dynamic> leadData) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/companies'); // Update path if needed
+
+    final response = await http.post(
+      url,
+      headers: _buildHeaders(token),
+      body: jsonEncode(leadData),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data['id'];
+    } else if (response.statusCode == 409) {
+      throw Exception('Duplicate companies detected.');
+    } else {
+      try {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to create companies (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to create companies (${response.statusCode})');
+      }
+    }
+  }
+  /// PUT:Update the existing leads
+  Future<Map<String, dynamic>> updateCompany(dynamic id, Map<String, dynamic> updatedFields) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/companies/$id');
+    final response = await http.put(
+      url,
+      headers: _buildHeaders(token),
+      body: jsonEncode(updatedFields),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return decoded as Map<String, dynamic>;
+    } else {
+      throw Exception(decoded['message'] ?? 'Failed to update company (${response.statusCode})');
+    }
+  }
+  /// DELETE: Delete the company by [id].
+  /// Returns true if deleted, throws Exception if not.
+  Future<bool> deleteCompany(dynamic id) async {
+    final token = await _getToken();
+    final url = Uri.parse('$baseUrl/companies/$id');
+
+    final response = await http.delete(url, headers: _buildHeaders(token));
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      // Optionally check message value
+      if (body is Map && body['message'] == 'Company deleted') {
+        return true;
+      } else {
+        throw Exception('Unexpected API response: $body');
+      }
+    } else {
+      try {
+        final err = jsonDecode(response.body);
+        throw Exception(err['message'] ?? 'Failed to delete companies (${response.statusCode})');
+      } catch (_) {
+        throw Exception('Failed to delete companies (${response.statusCode})');
+      }
+    }
+  }
+//------------company API Methods ENDs HERE-----------
+
 }

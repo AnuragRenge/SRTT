@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../widgets/in_app_notification.dart';
+import 'package:flutter/cupertino.dart';
 
 class UserDetailScreen extends StatefulWidget {
   final int id;
@@ -283,6 +284,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final controller = _controllers[fieldName] ?? TextEditingController(text: val);
 
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -392,6 +394,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       );
     } else {
       return Card(
+        color: Colors.white,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -430,6 +433,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final statusText = isActive == 1 ? "Active" : "Inactive";
 
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -490,6 +494,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     required IconData icon,
   }) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -559,7 +564,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             future: _userFuture,
             builder: (context, snapshot) {
               if ((snapshot.connectionState == ConnectionState.waiting && userData == null)) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)));
               }
               final user = userData ?? snapshot.data;
               if (user == null || user.isEmpty) {
