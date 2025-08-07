@@ -1,6 +1,15 @@
 // controllers/companiesController.js
 const db = require('../db');
 
+// GET all companies for picklist
+exports.getCompanyPicklist = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT id,name FROM companies');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 // GET all companies
 exports.getCompanies = async (req, res) => {
   try {

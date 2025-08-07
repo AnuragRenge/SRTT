@@ -7,6 +7,7 @@ const companiesController = require('../controllers/companiesController');
 // Protect all company routes
 router.use(authenticateToken);
 
+router.get('/companypicklist',companiesController.getCompanyPicklist);
 router.get('/', companiesController.getCompanies);
 router.get('/:id', companiesController.getCompanyById);
 router.post('/', companiesController.createCompany);
