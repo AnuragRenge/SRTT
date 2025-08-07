@@ -25,6 +25,13 @@ exports.getDriverById = async (req, res) => {
 // POST new driver
 exports.createDriver = async (req, res) => {
   const { name, license_number, phone, aadhar_card, status, email, company_id } = req.body;
+  const [existingDriver] = await db.query(
+        'SELECT id FROM drivers WHERE phone = ?',
+        [phone]
+      );
+      if (existingDriver.length > 0) {
+        return res.status(409).json({ error: 'Driver with this phone number already exists' });
+      }
   try {
     const [result] = await db.query(
       'INSERT INTO drivers (name, license_number, phone, aadhar_card, status, email, company_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
