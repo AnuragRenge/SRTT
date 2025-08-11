@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import  '../widgets/in_app_notification.dart';
 
 class CreateLeadScreen extends StatefulWidget {
   const CreateLeadScreen({super.key});
@@ -109,11 +108,12 @@ class _CreateLeadScreenState extends State<CreateLeadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Lead'),
         backgroundColor: Colors.white,
+        title: const Text('Create Lead'),
         iconTheme: const IconThemeData(color: Colors.blue),
         elevation: 1,
       ),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           Align(

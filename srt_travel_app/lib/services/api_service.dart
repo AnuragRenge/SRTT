@@ -3,10 +3,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  //static const String baseUrl = 'http://10.0.2.2:30306';
-  static const String baseUrl = 'https://srtt.up.railway.app';
+  static const String baseUrl = 'http://10.0.2.2:30306';
+  //static const String baseUrl = 'https://srtt.up.railway.app';
 
-  // Login and store JWT token
+  // --------------------- Auth ---------------------
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     final response = await http.post(
@@ -14,9 +14,8 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
       final token = data['token'];
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt_token', token);
@@ -28,16 +27,10 @@ class ApiService {
         'id': data['id'],
       };
     } else {
-      try {
-        //final data = jsonDecode(response.body);
-        throw Exception('Login Attempt failed:${response.statusCode}');
-      } catch (_) {
-        throw Exception('Login failed (${response.statusCode})');
-      }
+      throw Exception('Login failed (${response.statusCode})');
     }
   }
 
-  // New user registrations
   Future<bool> register(Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/auth/register');
     final response = await http.post(
@@ -45,298 +38,304 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
-    if (response.statusCode == 201) {
-      return true;
-    } else {
-      try {
-        final decoded = jsonDecode(response.body);
-        throw Exception(
-          decoded['message'] ?? 'Registration failed (${response.statusCode})',
-        );
-      } catch (_) {
-        throw Exception('Registration failed (${response.statusCode})');
-      }
-    }
+    if (response.statusCode == 201) return true;
+    final err = _maybeDecodeJson(response.body);
+    final message = (err is Map && err['message'] is String)
+        ? err['message']
+        : 'Registration failed (${response.statusCode})';
+    throw Exception(message);
   }
 
-  // Logout by removing the token
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
   }
 
-  // Get token from local storage
+  // --------------------- Token & Headers ---------------------
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
   }
-  // Helper: build common headers
+
   Map<String, String> _buildHeaders(String? token) {
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
-  // --------- LEADS API METHODS -----------
-  /// Fetches list of leads from backend
-  Future<List<Map<String, dynamic>>> getLeads() async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/leads'); // Change path if different
 
-    final response = await http.get(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      // Assume response.body is a JSON array as per your sample
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      // Ensure safe conversion to list of Map<String, dynamic>
-      return jsonList.cast<Map<String, dynamic>>();
-    } else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load leads (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load leads (${response.statusCode})');
-      }
+  // --------------------- JSON helpers ---------------------
+  dynamic _maybeDecodeJson(String source) {
+    try {
+      return jsonDecode(source);
+    } catch (_) {
+      return null;
     }
   }
-  /// fetches lead by Id
-  Future<Map<String, dynamic>?> getLeadById(dynamic id) async {
+
+  List<Map<String, dynamic>> _parseList(dynamic decoded) {
+    if (decoded is List) {
+      return decoded.cast<Map<String, dynamic>>();
+    }
+    throw Exception('Expected JSON array');
+  }
+
+  Map<String, dynamic> _parseMap(dynamic decoded) {
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    throw Exception('Expected JSON object');
+  }
+
+  // --------------------- Core request helper ---------------------
+  Future<http.Response> _request({
+    required String method,
+    required String path,
+    Map<String, dynamic>? body,
+  }) async {
     final token = await _getToken();
-    final url = Uri.parse('$baseUrl/leads/$id');
-    final response = await http.get(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load leads (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load leads (${response.statusCode})');
-      }
+    final headers = _buildHeaders(token);
+    final url = Uri.parse('$baseUrl$path');
+    switch (method) {
+      case 'GET':
+        return await http.get(url, headers: headers);
+      case 'POST':
+        return await http.post(
+          url,
+          headers: headers,
+          body: jsonEncode(body ?? {}),
+        );
+      case 'PUT':
+        return await http.put(
+          url,
+          headers: headers,
+          body: jsonEncode(body ?? {}),
+        );
+      case 'DELETE':
+        return await http.delete(url, headers: headers);
+      default:
+        throw Exception('Unsupported HTTP method: $method');
     }
   }
-  /// POST: Create new Lead (no duplicate based on Phone)
-  Future<int> createLead(Map<String, dynamic> leadData) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/leads'); // Update path if needed
 
-    final response = await http.post(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(leadData),
+  String _extractErrorMessage({
+    required http.Response response,
+    required String fallback,
+  }) {
+    final decoded = _maybeDecodeJson(response.body);
+    if (decoded is Map && decoded['message'] is String) {
+      return decoded['message'];
+    }
+    return fallback;
+  }
+
+  // --------------------- Generic CRUD helpers ---------------------
+  Future<List<Map<String, dynamic>>> fetchList(
+    String path, {
+    required String entityLabel,
+  }) async {
+    final response = await _request(method: 'GET', path: path);
+    if (response.statusCode == 200) {
+      return _parseList(jsonDecode(response.body));
+    }
+    final msg = _extractErrorMessage(
+      response: response,
+      fallback: 'Failed to load $entityLabel (${response.statusCode})',
     );
+    throw Exception(msg);
+  }
+
+  Future<Map<String, dynamic>> fetchById(
+    String path,
+    dynamic id, {
+    required String entityLabel,
+  }) async {
+    final response = await _request(method: 'GET', path: '$path/$id');
+    if (response.statusCode == 200) {
+      return _parseMap(jsonDecode(response.body));
+    }
+    final msg = _extractErrorMessage(
+      response: response,
+      fallback: 'Failed to load $entityLabel (${response.statusCode})',
+    );
+    throw Exception(msg);
+  }
+
+  Future<int> createEntity(
+    String path,
+    Map<String, dynamic> data, {
+    required String entityLabel,
+  }) async {
+    final response = await _request(method: 'POST', path: path, body: data);
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data['id'];
+      final map = _parseMap(jsonDecode(response.body));
+      final id = map['id'];
+      if (id is int) return id;
+      throw Exception('Created $entityLabel but no id returned');
     } else if (response.statusCode == 409) {
-      throw Exception('Duplicate lead detected.');
+      throw Exception('Duplicate $entityLabel detected.');
     } else {
-      try {
-        final data = jsonDecode(response.body);
-        throw Exception(data['message'] ?? 'Failed to create lead (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to create lead (${response.statusCode})');
-      }
+      final msg = _extractErrorMessage(
+        response: response,
+        fallback: 'Failed to create $entityLabel (${response.statusCode})',
+      );
+      throw Exception(msg);
     }
   }
-  /// PUT:Update the existing leads
-  Future<Map<String, dynamic>> updateLead(dynamic id, Map<String, dynamic> updatedFields) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/leads/$id');
-    final response = await http.put(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(updatedFields),
+
+  Future<Map<String, dynamic>> updateEntity(
+    String path,
+    dynamic id,
+    Map<String, dynamic> data, {
+    required String entityLabel,
+  }) async {
+    final response = await _request(
+      method: 'PUT',
+      path: '$path/$id',
+      body: data,
     );
-    final decoded = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return decoded as Map<String, dynamic>;
-    } else {
-      throw Exception(decoded['message'] ?? 'Failed to update lead (${response.statusCode})');
+      return _parseMap(jsonDecode(response.body));
     }
-  }
-  /// DELETE: Delete the lead by [id].
-  /// Returns true if deleted, throws Exception if not.
-  Future<bool> deleteLead(dynamic id) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/leads/$id');
-
-    final response = await http.delete(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      // Optionally check message value
-      if (body is Map && body['message'] == 'Lead deleted') {
-        return true;
-      } else {
-        throw Exception('Unexpected API response: $body');
-      }
-    } else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to delete lead (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to delete lead (${response.statusCode})');
-      }
-    }
-  }
-
-  //------------Lead API Methods ENDs HERE-----------
-
-  // ------------- USER API METHODS ---------
-  ///GET ALL LEADS
-  Future<List<Map<String, dynamic>>> getUsers() async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/users'); // Change path if different
-
-    final response = await http.get(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      // Assume response.body is a JSON array as per your sample
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      // Ensure safe conversion to list of Map<String, dynamic>
-      return jsonList.cast<Map<String, dynamic>>();
-    } else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load users (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load users (${response.statusCode})');
-      }
-    }
-  }
-  /// fetches lead by Id
-  Future<Map<String, dynamic>?> getUserById(dynamic id) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/users/$id');
-    final response = await http.get(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load users (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load users (${response.statusCode})');
-      }
-    }
-  }
-  /// PUT:Update the existing leads
-  Future<Map<String, dynamic>> updateUser(dynamic id, Map<String, dynamic> updatedFields) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/users/$id');
-    final response = await http.put(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(updatedFields),
+    final msg = _extractErrorMessage(
+      response: response,
+      fallback: 'Failed to update $entityLabel (${response.statusCode})',
     );
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode == 200) {
-      return decoded as Map<String, dynamic>;
-    } else {
-      throw Exception(decoded['message'] ?? 'Failed to update user record (${response.statusCode})');
-    }
+    throw Exception(msg);
   }
 
-//------------User API Methods ENDs HERE-----------
-//-------------------company API Starts HERE -----------
-  /// Fetches list of company from backend
-  Future<List<Map<String, dynamic>>> getCompany() async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/companies'); // Change path if different
-
-    final response = await http.get(url, headers: _buildHeaders(token));
+  Future<bool> deleteEntity(
+    String path,
+    dynamic id, {
+    required String entityLabel,
+    String? expectedDeleteMessage,
+  }) async {
+    final response = await _request(method: 'DELETE', path: '$path/$id');
     if (response.statusCode == 200) {
-      // Assume response.body is a JSON array as per your sample
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      // Ensure safe conversion to list of Map<String, dynamic>
-      return jsonList.cast<Map<String, dynamic>>();
-    } else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load companies (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load companies (${response.statusCode})');
+      final decoded = _maybeDecodeJson(response.body);
+      if (decoded is Map) {
+        if (expectedDeleteMessage == null) return true;
+        if (decoded['message'] == expectedDeleteMessage) return true;
+        throw Exception('Unexpected API response: $decoded');
       }
+      return true;
     }
-  }
-  /// fetches company by Id
-  Future<Map<String, dynamic>?> getCompanyById(dynamic id) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/companies/$id');
-    final response = await http.get(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to load companies (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to load companies (${response.statusCode})');
-      }
-    }
-  }
-  /// POST: Create new company (no duplicate based on Phone)
-  Future<int> createCompany(Map<String, dynamic> leadData) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/companies'); // Update path if needed
-
-    final response = await http.post(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(leadData),
+    final msg = _extractErrorMessage(
+      response: response,
+      fallback: 'Failed to delete $entityLabel (${response.statusCode})',
     );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data['id'];
-    } else if (response.statusCode == 409) {
-      throw Exception('Duplicate companies detected.');
-    } else {
-      try {
-        final data = jsonDecode(response.body);
-        throw Exception(data['message'] ?? 'Failed to create companies (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to create companies (${response.statusCode})');
-      }
-    }
+    throw Exception(msg);
   }
-  /// PUT:Update the existing leads
-  Future<Map<String, dynamic>> updateCompany(dynamic id, Map<String, dynamic> updatedFields) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/companies/$id');
-    final response = await http.put(
-      url,
-      headers: _buildHeaders(token),
-      body: jsonEncode(updatedFields),
-    );
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode == 200) {
-      return decoded as Map<String, dynamic>;
-    } else {
-      throw Exception(decoded['message'] ?? 'Failed to update company (${response.statusCode})');
-    }
-  }
-  /// DELETE: Delete the company by [id].
-  /// Returns true if deleted, throws Exception if not.
-  Future<bool> deleteCompany(dynamic id) async {
-    final token = await _getToken();
-    final url = Uri.parse('$baseUrl/companies/$id');
 
-    final response = await http.delete(url, headers: _buildHeaders(token));
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      // Optionally check message value
-      if (body is Map && body['message'] == 'Company deleted') {
-        return true;
-      } else {
-        throw Exception('Unexpected API response: $body');
-      }
-    } else {
-      try {
-        final err = jsonDecode(response.body);
-        throw Exception(err['message'] ?? 'Failed to delete companies (${response.statusCode})');
-      } catch (_) {
-        throw Exception('Failed to delete companies (${response.statusCode})');
-      }
-    }
-  }
-//------------company API Methods ENDs HERE-----------
+  // --------------------- Entity wrappers below ---------------------
 
+  // Leads
+  Future<List<Map<String, dynamic>>> getLeads() =>
+      fetchList('/leads', entityLabel: 'leads');
+  Future<List<Map<String, dynamic>>> getLeadpicklist() =>
+      fetchList('/leads/leadpicklist/', entityLabel: 'Lead');
+  Future<Map<String, dynamic>> getLeadById(dynamic id) =>
+      fetchById('/leads', id, entityLabel: 'lead');
+  Future<int> createLead(Map<String, dynamic> leadData) =>
+      createEntity('/leads', leadData, entityLabel: 'lead');
+  Future<Map<String, dynamic>> updateLead(
+    dynamic id,
+    Map<String, dynamic> updatedFields,
+  ) => updateEntity('/leads', id, updatedFields, entityLabel: 'lead');
+  Future<bool> deleteLead(dynamic id) => deleteEntity(
+    '/leads',
+    id,
+    entityLabel: 'lead',
+    expectedDeleteMessage: 'Lead deleted',
+  );
+
+  // Users
+  Future<List<Map<String, dynamic>>> getUsers() =>
+      fetchList('/users', entityLabel: 'users');
+  Future<Map<String, dynamic>> getUserById(dynamic id) =>
+      fetchById('/users', id, entityLabel: 'user');
+  Future<Map<String, dynamic>> updateUser(
+    dynamic id,
+    Map<String, dynamic> updatedFields,
+  ) => updateEntity('/users', id, updatedFields, entityLabel: 'user record');
+
+  // Companies
+  Future<List<Map<String, dynamic>>> getCompany() =>
+      fetchList('/companies', entityLabel: 'companies');
+  Future<List<Map<String, dynamic>>> getCompanypicklist() =>
+      fetchList('/companies/companypicklist/', entityLabel: 'companies');
+  Future<Map<String, dynamic>> getCompanyById(dynamic id) =>
+      fetchById('/companies', id, entityLabel: 'company');
+  Future<int> createCompany(Map<String, dynamic> data) =>
+      createEntity('/companies', data, entityLabel: 'company');
+  Future<Map<String, dynamic>> updateCompany(
+    dynamic id,
+    Map<String, dynamic> updatedFields,
+  ) => updateEntity('/companies', id, updatedFields, entityLabel: 'company');
+  Future<bool> deleteCompany(dynamic id) => deleteEntity(
+    '/companies',
+    id,
+    entityLabel: 'company',
+    expectedDeleteMessage: 'Company deleted',
+  );
+
+  // Drivers
+  Future<List<Map<String, dynamic>>> getDriver() =>
+      fetchList('/drivers', entityLabel: 'drivers');
+  Future<Map<String, dynamic>> getDriverById(dynamic id) =>
+      fetchById('/drivers', id, entityLabel: 'driver');
+  Future<List<Map<String, dynamic>>> getDriverpicklist() =>
+      fetchList('/drivers/driverpicklist/', entityLabel: 'drivers');
+  Future<int> createDriver(Map<String, dynamic> data) =>
+      createEntity('/drivers', data, entityLabel: 'driver');
+  Future<Map<String, dynamic>> updateDriver(
+    dynamic id,
+    Map<String, dynamic> updatedFields,
+  ) => updateEntity('/drivers', id, updatedFields, entityLabel: 'driver');
+  Future<bool> deleteDriver(dynamic id) => deleteEntity(
+    '/drivers',
+    id,
+    entityLabel: 'driver record',
+    expectedDeleteMessage: 'Driver deleted',
+  );
+
+  // Vehicles
+  Future<List<Map<String, dynamic>>> getVehicle() =>
+      fetchList('/vehicles', entityLabel: 'vehicles');
+  Future<List<Map<String, dynamic>>> getVehiclepicklist() =>
+      fetchList('/vehicles/vehiclepicklist/', entityLabel: 'vehicles');
+  Future<Map<String, dynamic>> getVehicleById(dynamic id) =>
+      fetchById('/vehicles', id, entityLabel: 'vehicle');
+  Future<int> createVehicle(Map<String, dynamic> data) =>
+      createEntity('/vehicles', data, entityLabel: 'vehicle');
+  Future<Map<String, dynamic>> updateVehicle(
+    dynamic id,
+    Map<String, dynamic> updatedFields,
+  ) => updateEntity('/vehicles', id, updatedFields, entityLabel: 'vehicle');
+  Future<bool> deleteVehicle(dynamic id) => deleteEntity(
+    '/vehicles',
+    id,
+    entityLabel: 'vehicle',
+    expectedDeleteMessage: 'Vehicle deleted',
+  );
+
+  // Tours
+  Future<List<Map<String, dynamic>>> getTour() =>
+      fetchList('/tours', entityLabel: 'Tours');
+  Future<List<Map<String, dynamic>>> getTourpicklist() =>
+      fetchList('/tours/Tourpicklist/', entityLabel: 'tours');
+  Future<Map<String, dynamic>> getTourById(dynamic id) =>
+      fetchById('/tours', id, entityLabel: 'tours');
+  Future<int> createTour(Map<String, dynamic> data) =>
+      createEntity('/tours', data, entityLabel: 'tours');
+  Future<Map<String, dynamic>> updateTour(
+      dynamic id,
+      Map<String, dynamic> updatedFields,
+      ) => updateEntity('/tours', id, updatedFields, entityLabel: 'tours');
+  Future<bool> deleteTour(dynamic id) => deleteEntity(
+    '/tours',
+    id,
+    entityLabel: 'tours',
+    expectedDeleteMessage: 'Tour deleted',
+  );
 }

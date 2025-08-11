@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'create_lead_screen.dart';
+import 'lead_create_screen.dart';
 import '../widgets/in_app_notification.dart';
 import 'lead_detail_screen.dart';
 import 'package:flutter/cupertino.dart';
@@ -102,9 +102,9 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
     switch (status.toLowerCase()) {
       case 'new': return Colors.blueAccent;
       case 'not answered': return Colors.red;
-      case 'under follow-up': return Colors.green;
+      case 'under follow-up': return Colors.orange;
       case 'lost': return Colors.redAccent;
-      case 'booked': return Colors.grey;
+      case 'booked': return Colors.green;
       default: return Colors.black54;
     }
   }
@@ -144,6 +144,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
+                backgroundColor: Colors.white,
                 title: const Text('Filter Status'),
                 content: SizedBox(
                   width: double.maxFinite,
@@ -217,6 +218,7 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Confirm Delete",
             style: TextStyle(

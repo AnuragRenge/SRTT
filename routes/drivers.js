@@ -7,6 +7,7 @@ const driversController = require('../controllers/driversController');
 // Protect all routes by adding authenticateToken middleware
 router.use(authenticateToken);
 
+router.get('/driverpicklist',driversController.getDriversPicklist);
 router.get('/', driversController.getDrivers);
 router.get('/:id', driversController.getDriverById);
 router.post('/', driversController.createDriver);

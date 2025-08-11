@@ -133,6 +133,7 @@ class _UserListScreenState extends State<UserListScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: const Text('Filter by Role'),
               content: SizedBox(
                 width: double.maxFinite,

@@ -10,6 +10,15 @@ exports.getDrivers = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// GET all drivers for picklist
+exports.getDriversPicklist = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT id,name,status FROM drivers');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // GET one driver by id
 exports.getDriverById = async (req, res) => {

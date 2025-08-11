@@ -4,62 +4,63 @@ import '../services/api_service.dart';
 import '../widgets/in_app_notification.dart';
 import 'package:flutter/cupertino.dart';
 
-import 'tour_create_screen.dart';
-
-class LeadDetailScreen extends StatefulWidget {
-  final dynamic leadId;
-
-  const LeadDetailScreen({super.key, required this.leadId});
+class DriverDetailScreen extends StatefulWidget {
+  final dynamic driverId;
+  const DriverDetailScreen({super.key, required this.driverId});
 
   @override
-  State<LeadDetailScreen> createState() => _LeadDetailScreenState();
+  State<DriverDetailScreen> createState() => _DriverDetailScreenState();
 }
 
-class _LeadDetailScreenState extends State<LeadDetailScreen> {
-  late Future<Map<String, dynamic>?> _leadFuture;
-  Map<String, dynamic>? leadData;
+class _DriverDetailScreenState extends State<DriverDetailScreen> {
+  late Future<Map<String, dynamic>?> _driverFuture;
+  Map<String, dynamic>? driverData;
   Map<String, dynamic>? initialData;
 
   String? editingField;
   final Map<String, TextEditingController> _controllers = {};
 
-  bool _leadJustUpdated = false;
   String? notificationMessage;
   bool showNotification = false;
   Color notificationColor = Colors.blue;
 
-  String? _phoneBeforeEdit;
-
-  final List<String> statusOptions = [
-    "New", "Lost", "Booked", "Under Follow-up", "Not Answered"
-  ];
-  final List<String> sourceOptions = [
-    "Website", "Manual"
-  ];
-
-  List<Map<String, dynamic>> _allOtherLeads = [];
-
   bool showSaveReset = false;
-
   bool _isSaving = false;
-
-  /// ---- NEW: Track if any save happened during this session (like UserDetailScreen)
   bool _hasSavedAnyChange = false;
-  /// Logic: true if anything is changed (for Save/Reset)
+
+  final List<String> statusOptions = ["Available", "On Duty"];
+  String? _phoneBeforeEdit, _licenseBeforeEdit, _aadharBeforeEdit;
+
   bool get isChanged {
-    if (leadData == null || initialData == null) return false;
-    for (final key in ['name', 'phone', 'email', 'status', 'source']) {
-      if ((leadData![key]?.trim() ?? '') != (initialData![key]?.trim() ?? '')) return true;
+    if (driverData == null || initialData == null) return false;
+    for (final key in [
+      'name',
+      'phone',
+      'email',
+      'status',
+      'license_number',
+      'aadhar_card',
+    ]) {
+      if ((driverData![key]?.trim() ?? '') != (initialData![key]?.trim() ?? '')) {
+        return true;
+      }
     }
     return false;
   }
 
   Map<String, dynamic> get updatedFields {
     final updated = <String, dynamic>{};
-    if (leadData == null || initialData == null) return updated;
-    for (final key in ['name', 'phone', 'email', 'status', 'source']) {
-      if ((leadData![key]?.trim() ?? '') != (initialData![key]?.trim() ?? '')) {
-        updated[key] = leadData![key].toString().trim();
+    if (driverData == null || initialData == null) return updated;
+    for (final key in [
+      'name',
+      'phone',
+      'email',
+      'status',
+      'license_number',
+      'aadhar_card'
+    ]) {
+      if ((driverData![key]?.trim() ?? '') != (initialData![key]?.trim() ?? '')) {
+        updated[key] = driverData![key].toString().trim();
       }
     }
     return updated;
@@ -68,8 +69,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _leadFuture = _fetchLead();
-    _fetchAllOtherLeads();
+    _driverFuture = _fetchDriver();
   }
 
   @override
@@ -80,21 +80,22 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     super.dispose();
   }
 
-  Future<Map<String, dynamic>?> _fetchLead() async {
-    final data = await ApiService().getLeadById(widget.leadId);
+  Future<Map<String, dynamic>?> _fetchDriver() async {
+    final data = await ApiService().getDriverById(widget.driverId);
     setState(() {
-      leadData = {...data};
+      driverData = {...data};
       initialData = {...data};
-      for (var key in ['name', 'phone', 'email']) {
+      for (var key in [
+        'name',
+        'phone',
+        'email',
+        'license_number',
+        'aadhar_card'
+      ]) {
         _controllers[key] = TextEditingController(text: data[key]?.toString() ?? '');
       }
     });
     return data;
-  }
-
-  Future<void> _fetchAllOtherLeads() async {
-    final leads = await ApiService().getLeads();
-    _allOtherLeads = leads.where((l) => l['id'].toString() != widget.leadId.toString()).toList();
   }
 
   String _getInitials(String? name) {
@@ -113,69 +114,83 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     return DateFormat('dd/MM/yyyy, h:mm a').format(istDate);
   }
 
-  /// ---- Start editing a field. For phone, store pre-edit value.
   void _startEdit(String fieldName) {
     setState(() {
-      _controllers[fieldName] ??= TextEditingController(text: leadData?[fieldName]?.toString() ?? '');
-      _controllers[fieldName]!.text = leadData?[fieldName]?.toString() ?? '';
+      _controllers[fieldName] ??= TextEditingController(text: driverData?[fieldName]?.toString() ?? '');
+      _controllers[fieldName]!.text = driverData?[fieldName]?.toString() ?? '';
       editingField = fieldName;
-      if (fieldName == 'phone') {
-        _phoneBeforeEdit = leadData?['phone']?.toString() ?? '';
-      }
+      if (fieldName == 'phone') _phoneBeforeEdit = driverData?['phone']?.toString() ?? '';
+      if (fieldName == 'license_number') _licenseBeforeEdit = driverData?['license_number']?.toString() ?? '';
+      if (fieldName == 'aadhar_card') _aadharBeforeEdit = driverData?['aadhar_card']?.toString() ?? '';
     });
   }
 
-  /// ---- Validation logic for phone. Sets showSaveReset only if success.
   Future<void> _finishEdit(String fieldName) async {
     final rawValue = _controllers[fieldName]?.text ?? '';
     final value = rawValue.trim();
 
-    // --- PHONE special validation
+    // PHONE validation
     if (fieldName == 'phone') {
       if (value != (_phoneBeforeEdit ?? '')) {
-        // 1. Must be 10 digits.
         if (value.isNotEmpty && !RegExp(r'^\d{10}$').hasMatch(value)) {
           _showNotification("Mobile must be a 10-digit number.", color: Colors.red);
-          Future.delayed(Duration(milliseconds: 200), () {
-            _controllers['phone']?.text = _phoneBeforeEdit ?? '';
-            setState(() {
-              editingField = null;
-              leadData?['phone'] = _phoneBeforeEdit ?? '';
-              showSaveReset = false;
-            });
-          });
-          return;
-        }
-        // 2. Duplicate check.
-        await _fetchAllOtherLeads();
-        if (value.isNotEmpty &&
-            _allOtherLeads.any((l) => (l['phone'] ?? '').toString().trim() == value)) {
-          _showNotification("This mobile already exists in another lead.", color: Colors.red);
-          Future.delayed(Duration(milliseconds: 200), () {
-            _controllers['phone']?.text = _phoneBeforeEdit ?? '';
-            setState(() {
-              editingField = null;
-              leadData?['phone'] = _phoneBeforeEdit ?? '';
-              showSaveReset = false;
-            });
+          await Future.delayed(Duration(milliseconds: 200));
+          _controllers['phone']?.text = _phoneBeforeEdit ?? '';
+          setState(() {
+            editingField = null;
+            driverData?['phone'] = _phoneBeforeEdit ?? '';
+            showSaveReset = false;
           });
           return;
         }
       }
     }
-
+    // LICENSE validation (optional, but not empty string)
+    if (fieldName == 'license_number') {
+      if (value.isNotEmpty && value.length < 4) {
+        _showNotification("License must be at least 4 characters.", color: Colors.red);
+        await Future.delayed(Duration(milliseconds: 200));
+        _controllers['license_number']?.text = _licenseBeforeEdit ?? '';
+        setState(() {
+          editingField = null;
+          driverData?['license_number'] = _licenseBeforeEdit ?? '';
+          showSaveReset = false;
+        });
+        return;
+      }
+    }
+    // AADHAR validation (optional)
+    if (fieldName == 'aadhar_card') {
+      if (value.isNotEmpty && !RegExp(r'^\d{12}$').hasMatch(value)) {
+        _showNotification("Aadhar must be a 12-digit number.", color: Colors.red);
+        await Future.delayed(Duration(milliseconds: 200));
+        _controllers['aadhar_card']?.text = _aadharBeforeEdit ?? '';
+        setState(() {
+          editingField = null;
+          driverData?['aadhar_card'] = _aadharBeforeEdit ?? '';
+          showSaveReset = false;
+        });
+        return;
+      }
+    }
     setState(() {
-      leadData?[fieldName] = value;
+      driverData?[fieldName] = value;
       editingField = null;
-      showSaveReset = isChanged;  // Only show Save/Reset when a change & after check is pressed
+      showSaveReset = isChanged;
     });
   }
 
   void _resetChanges() {
     setState(() {
       if (initialData == null) return;
-      leadData = {...initialData!};
-      for (var key in ['name', 'phone', 'email']) {
+      driverData = {...initialData!};
+      for (var key in [
+        'name',
+        'phone',
+        'email',
+        'license_number',
+        'aadhar_card'
+      ]) {
         _controllers[key]?.text = initialData?[key]?.toString() ?? '';
       }
       editingField = null;
@@ -194,72 +209,79 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     });
   }
 
-  /// ---- The Save API, fetches new details on success so Updated At refreshes
   Future<bool> _saveChanges({bool andPop = false}) async {
-    setState(() {
-      _isSaving = true; // SET LOADING TRUE
-    });
+    setState(() {_isSaving = true;});
     final updated = updatedFields;
-    // Validation 1: Not all blank
     bool allBlank = !updated.values.any((v) => v != null && v.toString().trim().isNotEmpty);
     if (allBlank) {
       _showNotification("Cannot update with all fields blank.", color: Colors.red);
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() {_isSaving = false;});
       return false;
     }
-    // Validation 2: If phone in update, recheck it (shouldn't, but for safety)
     if (updated.containsKey('phone')) {
       final phone = updated['phone']!.trim();
       if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
         _showNotification("Mobile must be exactly 10 digits.", color: Colors.red);
         _controllers['phone']?.text = initialData?['phone']?.toString() ?? '';
-        leadData?['phone'] = initialData?['phone']?.toString() ?? '';
+        driverData?['phone'] = initialData?['phone']?.toString() ?? '';
         setState(() {
-          showSaveReset = false;
-          _isSaving = false;
+          showSaveReset = false; _isSaving = false;
         });
         return false;
       }
-      await _fetchAllOtherLeads();
-      if (_allOtherLeads.any((l) => (l['phone'] ?? '').toString().trim() == phone)) {
-        _showNotification("Another lead already exists with this mobile.", color: Colors.red);
-        _controllers['phone']?.text = initialData?['phone']?.toString() ?? '';
-        leadData?['phone'] = initialData?['phone']?.toString() ?? '';
+    }
+    if (updated.containsKey('license_number')) {
+      final lic = updated['license_number']!.trim();
+      if (lic.isNotEmpty && lic.length < 4) {
+        _showNotification("License must be at least 4 characters.", color: Colors.red);
+        _controllers['license_number']?.text = initialData?['license_number']?.toString() ?? '';
+        driverData?['license_number'] = initialData?['license_number']?.toString() ?? '';
         setState(() {
-          showSaveReset = false;
-          _isSaving = false;
+          showSaveReset = false; _isSaving = false;
+        });
+        return false;
+      }
+    }
+    if (updated.containsKey('aadhar_card')) {
+      final aad = updated['aadhar_card']!.trim();
+      if (aad.isNotEmpty && !RegExp(r'^\d{12}$').hasMatch(aad)) {
+        _showNotification("Aadhar must be exactly 12 digits.", color: Colors.red);
+        _controllers['aadhar_card']?.text = initialData?['aadhar_card']?.toString() ?? '';
+        driverData?['aadhar_card'] = initialData?['aadhar_card']?.toString() ?? '';
+        setState(() {
+          showSaveReset = false; _isSaving = false;
         });
         return false;
       }
     }
 
     try {
-      final result = await ApiService().updateLead(widget.leadId, updated);
-      // UPDATED: Fetch the new lead data again, so updated_at is correct.
-      final fresh = await ApiService().getLeadById(widget.leadId);
+      final result = await ApiService().updateDriver(widget.driverId, updated);
+      // Fetch fresh details for update
+      final fresh = await ApiService().getDriverById(widget.driverId);
       setState(() {
-        notificationMessage = result['message'] ?? "Lead updated!";
+        notificationMessage = result['message'] ?? "Driver updated!";
         notificationColor = Colors.green;
         showNotification = true;
-        // Set both current and initialData to match backend
-        leadData = {...fresh};
+        driverData = {...fresh};
         initialData = {...fresh};
-        _controllers['name']?.text = leadData?['name'] ?? '';
-        _controllers['phone']?.text = leadData?['phone'] ?? '';
-        _controllers['email']?.text = leadData?['email'] ?? '';
-        _leadJustUpdated = true;
+        for (var key in [
+          'name',
+          'phone',
+          'email',
+          'license_number',
+          'aadhar_card'
+        ]) {
+          _controllers[key]?.text = driverData?[key] ?? '';
+        }
         showSaveReset = false;
-        _hasSavedAnyChange = true; // Track that save happened
+        _hasSavedAnyChange = true;
       });
-
-      // On Save in dialog, pop and notify parent immediately
       if (andPop && mounted) {
-        Future.delayed(const Duration(milliseconds: 400),
+        Future.delayed(
+            const Duration(milliseconds: 400),
                 () => Navigator.of(context).pop({'updated': true}));
       }
-
       Future.delayed(const Duration(seconds: 4), () {
         if (mounted) setState(() => showNotification = false);
       });
@@ -272,15 +294,10 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
       });
       return false;
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false; // SET LOADING FALSE
-        });
-      }
+      if (mounted) setState(() { _isSaving = false; });
     }
   }
 
-  /// ---- UPDATED: Show dialog on back with unsaved changes (following UserDetailScreen pattern)
   Future<bool> _maybeShowDiscardDialog() async {
     if (isChanged) {
       final result = await showDialog<bool>(
@@ -292,10 +309,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
           ),
           title: const Text(
             'Unsaved Changes',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           content: const Text(
             'Data has not been saved. Do you want to save changes?',
@@ -304,60 +318,43 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(false); // Cancel: discard & go back
+                Navigator.of(ctx).pop(false);
               },
               child: const Text(
                 'Cancel',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(ctx).pop(true); // Proceed with save
+                Navigator.of(ctx).pop(true);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              child: const Text(
-                'Save',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
       );
 
       if (result == true) {
-        // Save then pop on success
         await _saveChanges(andPop: true);
-        return false; // pop will be handled by save
+        return false;
       } else if (result == false) {
-        // Cancel was pressed - go back to previous page
         Navigator.of(context).pop({'updated': _hasSavedAnyChange});
         return false;
       } else {
-        // Dialog was dismissed without selection - stay on current page
         return false;
       }
     }
-    return true; // No unsaved edits, allow pop
+    return true;
   }
 
-  /// ---- UPDATED: Handle back navigation (following UserDetailScreen pattern)
   Future<bool> _onWillPop() async {
-    // If unsaved data, prompt; else, if any save happened in this session, signal parent to reload
     if (isChanged) {
       return await _maybeShowDiscardDialog();
     }
@@ -387,14 +384,13 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     );
   }
 
-  /// --- Editable dropdowns for status/source
   Widget _buildEditablePicklist({
     required String label,
     required String fieldName,
     required List<String> options,
     required IconData icon,
   }) {
-    final val = (leadData?[fieldName] ?? '').toString();
+    final val = (driverData?[fieldName] ?? '').toString();
     if (editingField == fieldName) {
       return Card(
         color: Colors.white,
@@ -405,14 +401,11 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
           leading: Icon(icon, color: Colors.blue[300]),
           title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
           subtitle: DropdownButtonFormField<String>(
-            value: options.contains(val) ? val : null,
-            items: options
-                .map((item) => DropdownMenuItem(
-                value: item, child: Text(item)))
-                .toList(),
+            value: options.contains(val) ? val : options.first,
+            items: options.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
             onChanged: (selected) {
               setState(() {
-                leadData?[fieldName] = selected ?? '';
+                driverData?[fieldName] = selected ?? options.first;
               });
             },
             decoration: InputDecoration(
@@ -452,10 +445,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
         child: ListTile(
           leading: Icon(icon, color: Colors.blue[300]),
           title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
-          subtitle: Text(
-            val.isEmpty ? 'NA' : val,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          ),
+          subtitle: Text(val.isEmpty ? 'NA' : val, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
           trailing: IconButton(
             icon: const Icon(Icons.edit, color: Colors.grey, size: 20),
             onPressed: () => _startEdit(fieldName),
@@ -466,14 +456,13 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
     }
   }
 
-  /// --- Editable, curved TextField for all (phone with its own logic)
   Widget _buildEditableTextField({
     required String label,
     required String fieldName,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final val = (leadData?[fieldName] ?? '').toString();
+    final val = (driverData?[fieldName] ?? '').toString();
     final isEditing = editingField == fieldName;
     final controller = _controllers[fieldName] ?? TextEditingController(text: val);
 
@@ -515,9 +504,9 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         trailing: isEditing
             ? IconButton(
-          icon: const Icon(Icons.check, color: Colors.blue),
-          onPressed: () async => await _finishEdit(fieldName),
-          tooltip: "Done",
+            icon: const Icon(Icons.check, color: Colors.blue),
+            onPressed: () async => await _finishEdit(fieldName),
+            tooltip: "Done"
         )
             : IconButton(
           icon: const Icon(Icons.edit, color: Colors.grey, size: 20),
@@ -541,8 +530,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
       child: ListTile(
         leading: Icon(icon, color: Colors.blue[300]),
         title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
-        subtitle: Text(value ?? 'NA',
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        subtitle: Text(value ?? 'NA', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
       ),
     );
@@ -552,56 +540,25 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Driver Details', style: TextStyle(color: Colors.blue)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         iconTheme: const IconThemeData(color: Colors.blue),
-        title: const Text(
-          'Lead Details',
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.add, size: 22),
-              label: const Text(
-                'Create Tour',
-                style: TextStyle( fontWeight: FontWeight.w600,fontSize: 16),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TourCreateScreen(leadId: widget.leadId),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
       ),
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
           FutureBuilder<Map<String, dynamic>?>(
-            future: _leadFuture,
+            future: _driverFuture,
             builder: (context, snapshot) {
-              if ((snapshot.connectionState == ConnectionState.waiting && leadData == null)) {
-                return const Center(child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)));
+              if ((snapshot.connectionState == ConnectionState.waiting && driverData == null)) {
+                return const Center(child: CupertinoActivityIndicator(radius: 20, color: Color(0xFF007AFF)));
               }
-              final lead = leadData ?? snapshot.data;
-              if (lead == null || lead.isEmpty) {
-                return const Center(child: Text('Lead not found.'));
+              final driver = driverData ?? snapshot.data;
+              if (driver == null || driver.isEmpty) {
+                return const Center(child: Text('Driver not found.'));
               }
-              final name = lead['name'] ?? '[No Name]';
+              final name = driver['name'] ?? '[No Name]';
               return WillPopScope(
                 onWillPop: _onWillPop,
                 child: SingleChildScrollView(
@@ -693,6 +650,18 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                         label: 'Email',
                         fieldName: 'email',
                         icon: Icons.email,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      _buildEditableTextField(
+                        label: 'License Number',
+                        fieldName: 'license_number',
+                        icon: Icons.badge,
+                      ),
+                      _buildEditableTextField(
+                        label: 'Aadhar Card',
+                        fieldName: 'aadhar_card',
+                        icon: Icons.credit_card,
+                        keyboardType: TextInputType.number,
                       ),
                       _buildEditablePicklist(
                         label: 'Status',
@@ -700,20 +669,14 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                         options: statusOptions,
                         icon: Icons.flag,
                       ),
-                      _buildEditablePicklist(
-                        label: 'Source',
-                        fieldName: 'source',
-                        options: sourceOptions,
-                        icon: Icons.link,
-                      ),
                       _buildReadonlyRow(
                         label: 'Created Date',
-                        value: _formatDateTimeIST(lead['created_at']),
+                        value: _formatDateTimeIST(driver['created_at']),
                         icon: Icons.calendar_today,
                       ),
                       _buildReadonlyRow(
                         label: 'Last Modified Date',
-                        value: _formatDateTimeIST(lead['updated_at']),
+                        value: _formatDateTimeIST(driver['updated_at']),
                         icon: Icons.update,
                       ),
                       if (showSaveReset && isChanged)
@@ -744,8 +707,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                                     textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
-                                  child: const Text('Reset',
-                                      style: TextStyle(color: Colors.blue)),
+                                  child: const Text('Reset', style: TextStyle(color: Colors.blue)),
                                 ),
                               ),
                             ],
@@ -759,7 +721,6 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
           ),
           if (showNotification && notificationMessage != null)
             _notificationWidget(),
-          // ---- ADD LOADING OVERLAY FOR SAVE
           if (_isSaving)
             const Opacity(
               opacity: 0.3,
@@ -767,7 +728,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
             ),
           if (_isSaving)
             const Center(
-              child: CupertinoActivityIndicator( radius: 20, color: Color(0xFF007AFF)),
+              child: CupertinoActivityIndicator(radius: 20, color: Color(0xFF007AFF)),
             ),
         ],
       ),

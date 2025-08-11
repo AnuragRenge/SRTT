@@ -6,7 +6,7 @@ const vehiclesController = require('../controllers/vehiclesController');
 
 // Protect all routes by adding authenticateToken middleware
 router.use(authenticateToken);
-
+router.get('/vehiclepicklist',vehiclesController.getVehiclePicklist);
 router.get('/', vehiclesController.getVehicles);
 router.get('/:id', vehiclesController.getVehicleById);
 router.post('/', vehiclesController.createVehicle);

@@ -10,6 +10,15 @@ exports.getLeads = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// GET lead picklist
+exports.getLeadPicklist = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT id, name FROM leads');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
 // GET lead by ID
 exports.getLeadById = async (req, res) => {

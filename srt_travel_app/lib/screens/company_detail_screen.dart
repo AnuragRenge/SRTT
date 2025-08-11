@@ -201,6 +201,111 @@ class _CompanyDetailsScreenState extends State<CompanyDetailsScreen> {
       ),
     );
   }
+  void _logout() async {
+    await ApiService().logout();
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
+  Widget _buildDrawer(BuildContext context) {
+    final List<Map<String, dynamic>> navOptions = [
+      {
+        'label': "Home",
+        'icon': Icons.home,
+        'route': '/home',
+        'needsArgs': true,
+      },
+      {
+        'label': "Leads",
+        'icon': Icons.people,
+        'route': '/leads',
+        'needsArgs': true,
+      },
+      {
+        'label': "Tours",
+        'icon': Icons.map,
+        'route': '/tours',
+        'needsArgs': true,
+      },
+      {
+        'label': "Bookings",
+        'icon': Icons.book,
+        'route': '/bookings',
+        'needsArgs': true,
+      },
+      {
+        'label': "Drivers",
+        'icon': Icons.people_outline,
+        'route': '/drivers',
+        'needsArgs': true,
+      },
+      {
+        'label': "Vehicles",
+        'icon': Icons.directions_car,
+        'route': '/vehicles',
+        'needsArgs': true,
+      },
+      {
+        'label': "Users",
+        'icon': Icons.people,
+        'route': '/users',
+        'needsArgs': true,
+      },
+    ];
+
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text(
+                widget.username.isEmpty ? "No name" : widget.username,
+                style: const TextStyle(color: Colors.black),
+              ),
+              accountEmail: Text(
+                widget.email.isEmpty ? "No email" : widget.email,
+                style: const TextStyle(color: Colors.black54),
+              ),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.blue,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+              decoration: const BoxDecoration(color: Colors.white),
+            ),
+            ...navOptions.map(
+                  (item) => ListTile(
+                leading: Icon(item['icon'] as IconData, color: Colors.blue),
+                title: Text(item['label'] as String, style: const TextStyle(fontSize: 16)),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (item['needsArgs'] == true) {
+                    Navigator.pushNamed(
+                      context,
+                      item['route'] as String,
+                      arguments: {
+                        'role': widget.userRole,
+                        'username': widget.username,
+                        'email': widget.email,
+                        'id': widget.id,
+                      },
+                    );
+                  } else {
+                    Navigator.pushNamed(context, item['route'] as String);
+                  }
+                },
+              ),
+            ),
+            const Spacer(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(fontSize: 16, color: Colors.red)),
+              onTap: _logout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildEditableCard({
     required String label,
@@ -415,13 +520,14 @@ class _CompanyDetailsScreenState extends State<CompanyDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Company Details', style: TextStyle(color: Colors.blue)),
+        title: const Text('Company Details', style: TextStyle(color: Colors.black87)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         iconTheme: const IconThemeData(color: Colors.blue),
       ),
       // Optional: add your drawer here if needed
       backgroundColor: themeBg,
+      drawer: _buildDrawer(context),
       body: Stack(
         children: [
           FutureBuilder<Map<String, dynamic>?>(
@@ -472,14 +578,14 @@ class _CompanyDetailsScreenState extends State<CompanyDetailsScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
+                        const Divider(height: 4, thickness: 1, indent: 25, endIndent: 25),
+                        const SizedBox(height: 10),
                         // Make Name editable as a card AFTER name display
                         _buildEditableCard(
                           label: 'Company Name',
                           fieldName: 'name',
                           icon: Icons.business,
                         ),
-                        const Divider(height: 4, thickness: 1, indent: 25, endIndent: 25),
-                        const SizedBox(height: 10),
                         _buildEditableCard(
                           label: 'Address',
                           fieldName: 'address',

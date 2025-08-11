@@ -90,10 +90,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final data = await ApiService().getUserById(widget.id);
     if (mounted) {
       setState(() {
-        userData = {...?data};
-        initialData = {...?data};
+        userData = {...data};
+        initialData = {...data};
         for (final key in ['username', 'email', 'mobile']) {
-          _controllers[key] = TextEditingController(text: data?[key]?.toString() ?? '');
+          _controllers[key] = TextEditingController(text: data[key]?.toString() ?? '');
         }
       });
     }
@@ -227,8 +227,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         notificationMessage = result['message'] ?? "User updated!";
         notificationColor = Colors.green;
         showNotification = true;
-        userData = {...?fresh};
-        initialData = {...?fresh};
+        userData = {...fresh};
+        initialData = {...fresh};
         for (final key in ['username', 'mobile', 'email']) {
           _controllers[key]?.text = userData?[key]?.toString() ?? '';
         }
