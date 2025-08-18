@@ -6,6 +6,7 @@ import '../widgets/in_app_notification.dart';
 import 'driver_detail_screen.dart';
 import 'lead_detail_screen.dart';
 import 'vehicles_detail_screen.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class TourDetailScreen extends StatefulWidget {
   final dynamic tourId;
@@ -152,14 +153,16 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
     if (utcString == null || utcString.isEmpty) return 'NA';
     DateTime? utcDate = DateTime.tryParse(utcString);
     if (utcDate == null) return 'NA';
-    return DateFormat('dd/MM/yyyy HH:mm').format(utcDate);
+    final istDate = utcDate.toUtc().add(const Duration(hours: 5, minutes: 30));
+    return DateFormat('dd/MM/yyyy hh:mm a').format(istDate);
   }
 
   String _formatDateIST(String? utcString) {
     if (utcString == null || utcString.isEmpty) return 'NA';
     DateTime? utcDate = DateTime.tryParse(utcString);
     if (utcDate == null) return 'NA';
-    return DateFormat('dd/MM/yyyy').format(utcDate);
+    final istDate = utcDate.toUtc().add(const Duration(hours: 5, minutes: 30));
+    return DateFormat('dd/MM/yyyy').format(istDate);
   }
 
   bool get isChanged {
@@ -356,20 +359,49 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
       icon ?? _getIconForField(fieldName),
       label,
       isEditing
-          ? DropdownButtonFormField(
-          value: id,
-          items: options.map((item) {
-            return DropdownMenuItem(
-              value: item['id'],
-              child: Text(item['name'] ?? ''),
-            );
-          }).toList(),
-          onChanged: (v) {
-            setState(() {
-              tourData?[fieldName] = v;
-              showSaveReset = isChanged;
-            });
-          })
+          ? DropdownSearch<Map<String, dynamic>>(
+        items: (String filter, LoadProps? loadProps) {
+          if (filter.isEmpty) return options;
+          return options.where((opt) {
+            final name = (opt['name'] ?? '').toLowerCase();
+            return name.contains(filter.toLowerCase());
+          }).toList();
+        },
+        itemAsString: (item) => item['name'] ?? '',
+        selectedItem: options.firstWhere(
+              (o) => o['id'].toString() == id?.toString(),
+          orElse: () => {},
+        ),
+        compareFn: (i, s) => i['id'] == s['id'],
+        onChanged: (value) {
+          setState(() {
+            tourData?[fieldName] = value?['id'];
+            showSaveReset = isChanged;
+          });
+        },
+        dropdownBuilder: (context, selectedItem) => Text(
+          selectedItem?['name'] ?? 'Select',
+          style: TextStyle(
+            fontSize: 16,
+            color: selectedItem == null ? Colors.grey : Colors.black,
+          ),
+        ),
+        popupProps: PopupProps.menu(
+          showSearchBox: true,
+
+          searchFieldProps: TextFieldProps(
+            decoration: InputDecoration(hintText: 'Search...'),
+          ),
+        ),
+        decoratorProps: DropDownDecoratorProps(
+          decoration: InputDecoration(
+            // labelText: label,
+            // border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+      )
           : GestureDetector(
         onTap: alsoClickable && id != null
             ? () {

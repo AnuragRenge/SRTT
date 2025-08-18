@@ -557,7 +557,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
         iconTheme: const IconThemeData(color: Colors.blue),
         title: const Text(
           'Lead Details',
-          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.blue),
         ),
         actions: [
           Padding(

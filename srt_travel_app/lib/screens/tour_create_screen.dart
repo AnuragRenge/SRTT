@@ -5,6 +5,8 @@ import '../services/api_service.dart';
 import '../widgets/in_app_notification.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 
+import 'tour_detail_screen.dart';
+
 class TourCreateScreen extends StatefulWidget {
   final int? leadId; // optional
 
@@ -44,16 +46,52 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
   final List<String> _states = ["Maharashtra", "Madhya Pradesh"];
   final Map<String, List<String>> _citiesByState = {
     "Maharashtra": [
-      "Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Chandrapur",
-      "Dhule", "Kolhapur", "Latur", "Malegaon", "Miraj", "Mumbai", "Nagpur",
-      "Nanded", "Nashik", "Osmanabad", "Panvel", "Pimpri-Chinchwad", "Pune",
-      "Ratnagiri", "Sagling", "Satara", "Shirdi", "Solapur", "Sangli", "Thane",
-      "Ulhasnagar", "Wardha", "Yavatmal"
+      "Ahmednagar",
+      "Akola",
+      "Amravati",
+      "Aurangabad",
+      "Beed",
+      "Chandrapur",
+      "Dhule",
+      "Kolhapur",
+      "Latur",
+      "Malegaon",
+      "Miraj",
+      "Mumbai",
+      "Nagpur",
+      "Nanded",
+      "Nashik",
+      "Osmanabad",
+      "Panvel",
+      "Pimpri-Chinchwad",
+      "Pune",
+      "Ratnagiri",
+      "Sagling",
+      "Satara",
+      "Shirdi",
+      "Solapur",
+      "Sangli",
+      "Thane",
+      "Ulhasnagar",
+      "Wardha",
+      "Yavatmal",
     ],
     "Madhya Pradesh": [
-      "Bhopal", "Burhanpur", "Dewas", "Gwalior", "Indore", "Jabalpur",
-      "Khandwa", "Morena", "Murwara", "Ratlam", "Rewa", "Sagar", "Satna",
-      "Singrauli", "Ujjain"
+      "Bhopal",
+      "Burhanpur",
+      "Dewas",
+      "Gwalior",
+      "Indore",
+      "Jabalpur",
+      "Khandwa",
+      "Morena",
+      "Murwara",
+      "Ratlam",
+      "Rewa",
+      "Sagar",
+      "Satna",
+      "Singrauli",
+      "Ujjain",
     ],
   };
 
@@ -84,9 +122,8 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
 
     _selectedStartState = _states.first;
     _selectedEndState = _states.first;
-    _selectedStartCity = _citiesByState[_selectedStartState!]!.first;
-    _selectedEndCity = _citiesByState[_selectedEndState!]!.first;
-
+    _selectedStartCity = 'Nagpur';
+    _selectedEndCity = 'Pune';
   }
 
   @override
@@ -118,7 +155,9 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
       final data = await ApiService().getCompanypicklist();
       setState(() {
         _companies = data;
-        _selectedCompanyId = _companies.isNotEmpty ? _companies.first['id'] : null;
+        _selectedCompanyId = _companies.isNotEmpty
+            ? _companies.first['id']
+            : null;
       });
     } catch (e) {
       _showNotification("Failed to load companies: $e");
@@ -215,13 +254,31 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
         "duration_days": int.tryParse(_durationCtrl.text.trim()) ?? 0,
         "distance_km": num.tryParse(_distanceCtrl.text.trim()) ?? 0,
         "type_of_tour": _selectedTourType,
-        "premium": num.tryParse(_premiumCtrl.text.trim()) ?? 0
+        "premium": num.tryParse(_premiumCtrl.text.trim()) ?? 0,
       };
 
       final id = await ApiService().createTour(formData);
       if (!mounted) return;
-      Navigator.pop(context, {"success": true, "id": id});
-    } catch (e) {
+      if (widget.leadId != null) {
+        _showNotification(
+          "Tour created successfully from lead!",
+          color: Colors.green,
+        );
+
+        // Import your TourDetailScreen at the top of the file
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TourDetailScreen(tourId: id),
+          ),
+        );
+      } else {
+        // Otherwise: pop back with success result
+        Navigator.pop(context, {"success": true, "id": id});
+      }
+    }catch (e) {
       _showNotification("Error: $e");
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -268,18 +325,29 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                 child: Card(
                   color: Colors.white,
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   margin: EdgeInsets.zero,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
                     child: Column(
                       children: [
                         DropdownButtonFormField(
                           value: _selectedCompanyId,
                           items: _companies
-                              .map((c) => DropdownMenuItem(value: c['id'], child: Text(c['name'])))
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c['id'],
+                                  child: Text(c['name']),
+                                ),
+                              )
                               .toList(),
-                          onChanged: (v) => setState(() => _selectedCompanyId = v),
+                          onChanged: (v) =>
+                              setState(() => _selectedCompanyId = v),
                           decoration: _picklistDecoration("Company"),
                           validator: (v) => v == null ? "Required" : null,
                         ),
@@ -296,143 +364,358 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                         //   ),
                         // if (widget.leadId == null) const SizedBox(height: 20),
                         ///Lead Picklist Search
+                        if (widget.leadId == null) ...[
+                          DropdownSearch<Map<String, dynamic>>(
+                            items: (String filter, LoadProps? loadProps) {
+                              if (filter.isEmpty) {
+                                return _leads.take(5).toList();
+                              }
+                              return _leads.where((lead) {
+                                final name = (lead['name'] ?? '').toLowerCase();
+                                return name.contains(filter.toLowerCase());
+                              }).toList();
+                            },
+                            itemAsString: (item) => item['name'] ?? '',
+                            selectedItem: _leads.firstWhere(
+                              (l) => l['id'] == _selectedLeadId,
+                              orElse: () => {},
+                            ),
+                            compareFn: (i, s) => i['id'] == s['id'],
+                            onChanged: (value) {
+                              setState(() => _selectedLeadId = value?['id']);
+                            },
+                            validator: (value) =>
+                                value == null ? "Required" : null,
+
+                            dropdownBuilder: (context, selectedItem) {
+                              if (selectedItem == null) {
+                                return Text(
+                                  "Select Lead",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              }
+                              return Text(
+                                selectedItem['name'] ?? 'Select Lead',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              );
+                            },
+                            popupProps: PopupProps.menu(
+                              showSearchBox: true,
+                              searchFieldProps: TextFieldProps(
+                                decoration: InputDecoration(
+                                  hintText: 'Search By Name',
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            decoratorProps: DropDownDecoratorProps(
+                              decoration: _picklistDecoration("Lead"),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+
+                        ///Lead Picklist Search End
                         DropdownSearch<Map<String, dynamic>>(
                           items: (String filter, LoadProps? loadProps) {
                             if (filter.isEmpty) {
-                              return _leads.take(5).toList();
+                              return _vehicles;
                             }
-                            return _leads.where((lead) {
-                              final name = (lead['name'] ?? '').toLowerCase();
+                            return _vehicles.where((vehicle) {
+                              final name = (vehicle['name'] ?? '')
+                                  .toLowerCase();
                               return name.contains(filter.toLowerCase());
                             }).toList();
                           },
                           itemAsString: (item) => item['name'] ?? '',
-                          selectedItem: _leads.firstWhere(
-                                (l) => l['id'] == _selectedLeadId,
+                          selectedItem: _vehicles.firstWhere(
+                            (v) => v['id'] == _selectedVehicleId,
                             orElse: () => {},
                           ),
                           compareFn: (i, s) => i['id'] == s['id'],
-                          onChanged: (value) {
-                            setState(() => _selectedLeadId = value?['id']);
-                          },
-                          validator: (value) => value == null ? "Required" : null,
-
-                          dropdownBuilder: (context, selectedItem) {
-                            if (selectedItem == null) {
-                              return Text(
-                                "Select Lead",
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey),
-                              );
-                            }
-                            return Text(
-                              selectedItem['name'] ?? '',
-                              style: TextStyle(fontSize: 16, color: Colors.black),
-                            );
-                          },
+                          onChanged: (value) =>
+                              setState(() => _selectedVehicleId = value?['id']),
+                          validator: (value) =>
+                              value == null ? "Required" : null,
+                          dropdownBuilder: (context, selectedItem) => Text(
+                            selectedItem?['name'] ?? 'Select Vehicle',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: selectedItem == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
                           popupProps: PopupProps.menu(
                             showSearchBox: true,
+                            fit: FlexFit.loose,
+                            constraints: const BoxConstraints(maxHeight: 250),
                             searchFieldProps: TextFieldProps(
                               decoration: InputDecoration(
-                                hintText: 'Search By Name',
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                                hintText: 'Search Vehicle...',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
                               ),
                             ),
                           ),
                           decoratorProps: DropDownDecoratorProps(
-                            decoration: _picklistDecoration("Lead"),
+                            decoration: _picklistDecoration("Vehicle"),
                           ),
                         ),
-                        ///Lead Picklist Search End
-                        if (widget.leadId == null) const SizedBox(height: 20),
-                        DropdownButtonFormField(
-                          value: _selectedVehicleId,
-                          items: _vehicles
-                              .map((v) => DropdownMenuItem(value: v['id'], child: Text(v['name'])))
-                              .toList(),
-                          onChanged: (v) => setState(() => _selectedVehicleId = v),
-                          menuMaxHeight: 250,
-                          borderRadius: BorderRadius.circular(30),
-                          decoration: _picklistDecoration("Vehicle"),
-                          validator: (v) => v == null ? "Required" : null,
-                        ),
+
                         const SizedBox(height: 20),
 
                         TextFormField(
                           controller: _descriptionCtrl,
-                          decoration: _fieldDecoration("Description", Icons.description),
+                          decoration: _fieldDecoration(
+                            "Description",
+                            Icons.description,
+                          ),
                           validator: (v) => _validateRequired(v, "Description"),
                         ),
                         const SizedBox(height: 20),
 
-                        DropdownButtonFormField<String>(
-                          value: _selectedStartState,
-                          items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        DropdownSearch<String>(
+                          items: (String filter, LoadProps? loadProps) {
+                            if (filter.isEmpty) {
+                              return _states;
+                            }
+                            return _states
+                                .where(
+                                  (state) => state.toLowerCase().contains(
+                                    filter.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
+                          },
+                          selectedItem: _selectedStartState,
                           onChanged: (val) {
                             setState(() {
                               _selectedStartState = val;
                               _selectedStartCity = _citiesByState[val!]!.first;
                             });
                           },
-                          decoration: _picklistDecoration("Start State"),
-                          menuMaxHeight: 250,
-                          borderRadius: BorderRadius.circular(30),
+                          validator: (value) =>
+                              value == null ? "Required" : null,
+                          dropdownBuilder: (context, selectedItem) => Text(
+                            selectedItem ?? 'Select Start State',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: selectedItem == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                          popupProps: PopupProps.menu(
+                            showSearchBox: true,
+                            fit: FlexFit.loose,
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search State...',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                          decoratorProps: DropDownDecoratorProps(
+                            decoration: _picklistDecoration("Start State"),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        /// START CITY - searchable
+                        DropdownSearch<String>(
+                          items: (String filter, LoadProps? loadProps) {
+                            final cities =
+                                _citiesByState[_selectedStartState] ?? [];
+                            if (filter.isEmpty) {
+                              return cities;
+                            }
+                            return cities
+                                .where(
+                                  (city) => city.toLowerCase().contains(
+                                    filter.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
+                          },
+                          selectedItem: _selectedStartCity,
+                          onChanged: (val) =>
+                              setState(() => _selectedStartCity = val),
+                          validator: (value) =>
+                              value == null ? "Required" : null,
+                          dropdownBuilder: (context, selectedItem) => Text(
+                            selectedItem ?? 'Select Start City',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: selectedItem == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                          popupProps: PopupProps.menu(
+                            showSearchBox: true,
+                            fit: FlexFit.loose,
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search City...',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                          decoratorProps: DropDownDecoratorProps(
+                            decoration: _picklistDecoration("Start City"),
+                          ),
                         ),
                         const SizedBox(height: 20),
 
-                        DropdownButtonFormField<String>(
-                          value: _selectedStartCity,
-                          items: (_citiesByState[_selectedStartState] ?? [])
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (val) => setState(() => _selectedStartCity = val),
-                          decoration: _picklistDecoration("Start City"),
-                          menuMaxHeight: 250,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        const SizedBox(height: 20),
-
-                        DropdownButtonFormField<String>(
-                          value: _selectedEndState,
-                          items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        /// END STATE - searchable
+                        DropdownSearch<String>(
+                          items: (String filter, LoadProps? loadProps) {
+                            if (filter.isEmpty) {
+                              return _states;
+                            }
+                            return _states
+                                .where(
+                                  (state) => state.toLowerCase().contains(
+                                    filter.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
+                          },
+                          selectedItem: _selectedEndState,
                           onChanged: (val) {
                             setState(() {
                               _selectedEndState = val;
                               _selectedEndCity = _citiesByState[val!]!.first;
                             });
                           },
-                          decoration: _picklistDecoration("End State"),
+                          validator: (value) =>
+                              value == null ? "Required" : null,
+                          dropdownBuilder: (context, selectedItem) => Text(
+                            selectedItem ?? 'Select End State',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: selectedItem == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                          popupProps: PopupProps.menu(
+                            showSearchBox: true,
+                            fit: FlexFit.loose,
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search State...',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                          decoratorProps: DropDownDecoratorProps(
+                            decoration: _picklistDecoration("End State"),
+                          ),
                         ),
                         const SizedBox(height: 20),
 
-                        DropdownButtonFormField<String>(
-                          value: _selectedEndCity,
-                          items: (_citiesByState[_selectedEndState] ?? [])
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (val) => setState(() => _selectedEndCity = val),
-                          decoration: _picklistDecoration("End City"),
+                        /// END CITY - searchable
+                        DropdownSearch<String>(
+                          items: (String filter, LoadProps? loadProps) {
+                            final cities =
+                                _citiesByState[_selectedEndState] ?? [];
+                            if (filter.isEmpty) {
+                              return cities;
+                            }
+                            return cities
+                                .where(
+                                  (city) => city.toLowerCase().contains(
+                                    filter.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
+                          },
+                          selectedItem: _selectedEndCity,
+                          onChanged: (val) =>
+                              setState(() => _selectedEndCity = val),
+                          validator: (value) =>
+                              value == null ? "Required" : null,
+                          dropdownBuilder: (context, selectedItem) => Text(
+                            selectedItem ?? 'Select End City',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: selectedItem == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                          popupProps: PopupProps.menu(
+                            showSearchBox: true,
+                            fit: FlexFit.loose,
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search City...',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                          decoratorProps: DropDownDecoratorProps(
+                            decoration: _picklistDecoration("End City"),
+                          ),
                         ),
                         const SizedBox(height: 20),
 
                         TextFormField(
                           controller: _pickupCtrl,
-                          decoration: _fieldDecoration("Pickup Location", Icons.location_on),
-                          validator: (v) => _validateRequired(v, "Pickup location"),
+                          decoration: _fieldDecoration(
+                            "Pickup Location",
+                            Icons.location_on,
+                          ),
+                          validator: (v) =>
+                              _validateRequired(v, "Pickup location"),
                         ),
                         const SizedBox(height: 20),
 
                         TextFormField(
                           controller: _dropCtrl,
-                          decoration: _fieldDecoration("Drop Location", Icons.flag),
-                          validator: (v) => _validateRequired(v, "Drop location"),
+                          decoration: _fieldDecoration(
+                            "Drop Location",
+                            Icons.flag,
+                          ),
+                          validator: (v) =>
+                              _validateRequired(v, "Drop location"),
                         ),
                         const SizedBox(height: 20),
 
                         TextFormField(
                           controller: _startDateCtrl,
                           readOnly: true,
-                          onTap: () => _pickDate(_startDateCtrl,true),
-                          decoration: _fieldDecoration("Start Date", Icons.date_range),
+                          onTap: () => _pickDate(_startDateCtrl, true),
+                          decoration: _fieldDecoration(
+                            "Start Date",
+                            Icons.date_range,
+                          ),
                           validator: (v) => _validateRequired(v, "Start Date"),
                         ),
                         const SizedBox(height: 20),
@@ -440,16 +723,29 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                         TextFormField(
                           controller: _endDateCtrl,
                           readOnly: true,
-                          onTap: () => _pickDate(_endDateCtrl,false),
-                          decoration: _fieldDecoration("End Date", Icons.date_range),
+                          onTap: () => _pickDate(_endDateCtrl, false),
+                          decoration: _fieldDecoration(
+                            "End Date",
+                            Icons.date_range,
+                          ),
                           validator: (v) {
-                            final requiredError = _validateRequired(v, "End Date");
+                            final requiredError = _validateRequired(
+                              v,
+                              "End Date",
+                            );
                             if (requiredError != null) return requiredError;
-                            if (_startDateCtrl.text.isNotEmpty && v != null && v.isNotEmpty) {
+                            if (_startDateCtrl.text.isNotEmpty &&
+                                v != null &&
+                                v.isNotEmpty) {
                               try {
-                                final start = DateFormat('dd-MM-yyyy').parse(_startDateCtrl.text.trim());
-                                final end = DateFormat('dd-MM-yyyy').parse(v.trim());
-                                if (end.isBefore(start)) return "End Date cannot be before Start Date";
+                                final start = DateFormat(
+                                  'dd-MM-yyyy',
+                                ).parse(_startDateCtrl.text.trim());
+                                final end = DateFormat(
+                                  'dd-MM-yyyy',
+                                ).parse(v.trim());
+                                if (end.isBefore(start))
+                                  return "End Date cannot be before Start Date";
                               } catch (_) {
                                 return "Invalid date format";
                               }
@@ -462,7 +758,10 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                         TextFormField(
                           controller: _durationCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: _fieldDecoration("Duration (days)", Icons.timelapse),
+                          decoration: _fieldDecoration(
+                            "Duration (days)",
+                            Icons.timelapse,
+                          ),
                           validator: (v) => _validateNumber(v, "Duration"),
                         ),
                         const SizedBox(height: 20),
@@ -470,24 +769,37 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                         TextFormField(
                           controller: _distanceCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: _fieldDecoration("Distance (km)", Icons.straighten),
+                          decoration: _fieldDecoration(
+                            "Distance (km)",
+                            Icons.straighten,
+                          ),
                           validator: (v) => _validateNumber(v, "Distance"),
                         ),
                         const SizedBox(height: 20),
 
                         DropdownButtonFormField<String>(
                           value: _selectedTourType,
-                          items: _tourTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                          onChanged: (val) => setState(() => _selectedTourType = val),
+                          items: _tourTypes
+                              .map(
+                                (t) =>
+                                    DropdownMenuItem(value: t, child: Text(t)),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              setState(() => _selectedTourType = val),
                           decoration: _picklistDecoration("Type of Tour"),
                           validator: (v) => v == null ? "Required" : null,
+                          borderRadius: BorderRadius.circular(30),
                         ),
                         const SizedBox(height: 20),
 
                         TextFormField(
                           controller: _premiumCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: _fieldDecoration("Premium", Icons.currency_rupee),
+                          decoration: _fieldDecoration(
+                            "Premium",
+                            Icons.currency_rupee,
+                          ),
                         ),
                         const SizedBox(height: 30),
 
@@ -497,13 +809,20 @@ class _TourCreateScreenState extends State<TourCreateScreen> {
                             onPressed: _isSaving ? null : _saveTour,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
                               foregroundColor: Colors.white,
-                              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              textStyle: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child: _isSaving
-                                ? const CupertinoActivityIndicator(color: Colors.white)
+                                ? const CupertinoActivityIndicator(
+                                    color: Colors.white,
+                                  )
                                 : const Text("Save Tour"),
                           ),
                         ),
