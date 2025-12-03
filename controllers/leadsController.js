@@ -1,4 +1,7 @@
 const db = require('../db');
+const { sendEmail } = require('./emailHelper');
+const leadCreatedTemplate = require('../templates/leadCreated');
+const enquiryCreatedTemplate = require('../templates/enquiryCreated');
 
 // GET all leads
 exports.getLeads = async (req, res) => {
@@ -42,12 +45,35 @@ exports.createLead = async (req, res) => {
     if (existingLeads.length > 0) {
       return res.status(409).json({ error: 'Lead with this phone number already exists' });
     }
+    // Email setup
+    const subject = 'Thank you for your interest';
+    const text = `Hello ${name}, Thank you for showing interest. We have received your details.`;
+    const html = leadCreatedTemplate(name); 
+    // Admin Email setup
+    const adminSubject = 'New Enquiry/Lead has been created';
+    const adminHTML = enquiryCreatedTemplate({ name, phone, email, source }); 
+    const adminText = `Hello Anurag Renge, New Enquiry/Lead has been created with the following details:
+    \n Name: ${name} \n Phone: ${phone} \n Email: ${email} \n Source: ${source}` ;
+
     const [result] = await db.query(
       'INSERT INTO leads (name, phone, email,source,status) VALUES (?, ?, ?, ?, ?)',
       [name, phone, email, source, status]
     );
+
+    // Send Email
+    setImmediate(() => {
+      sendEmail(email, subject, html, text)
+        .then()
+        .catch(err => console.error(`Email error for ${email}:`, err));
+
+      sendEmail('anuragrenge90@gmail.com', adminSubject, adminHTML, adminText)
+        .then()
+        .catch(err => console.error(`Admin email error:`, err));
+    });
+
     res.status(201).json({ id: result.insertId });
   } catch (err) {
+    console.log('Error creating lead:', err);
     res.status(500).json({ error: err.message });
   }
 };

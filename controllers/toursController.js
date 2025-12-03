@@ -32,10 +32,9 @@ exports.getTourById = async (req, res) => {
 
 // POST new tour
 exports.createTour = async (req, res) => {
-  console.log(req.body);
   // Allowed fields
   const allowedFields = [
-    'company_id', 'lead_id', 'vehicle_id', 
+    'company_id', 'lead_id', 'vehicle_id',
     'description', 'start_state', 'end_state', 'start_city', 'end_city',
     'pickup_location', 'drop_location', 'start_date', 'end_date',
     'duration_days', 'distance_km', 'type_of_tour', 'premium'
@@ -64,7 +63,7 @@ exports.createTour = async (req, res) => {
       return res.status(500).json({ error: 'Error fetching assigned driver: ' + err.message });
     }
     // Overwrite/update driver_id regardless of user input
-    fields.push('driver_id'); 
+    fields.push('driver_id');
     values.push(driverIdToSet);
   }
 
@@ -89,7 +88,7 @@ exports.createTour = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: 'Error fetching company price: ' + err.message });
   }
-  
+
   fields.push('price');
   values.push(price);
 
@@ -102,8 +101,7 @@ exports.createTour = async (req, res) => {
   if (hasDist && hasPremium) {
     const distance = Number(req.body.distance_km);
     const premium = Number(req.body.premium);
-
-    total_amount = distance * price + premium;
+    total_amount = ((distance) * 2) * price + premium;
   }
 
   // Don't let users provide their own total_amount
@@ -118,6 +116,12 @@ exports.createTour = async (req, res) => {
     const [result] = await db.query(`INSERT INTO tours (${fieldList}) VALUES (${placeholders})`,
       values
     );
+    const insertedId = result.insertId;
+
+    const formattedName = `B NO -${String(insertedId).padStart(4, '0')}`;
+
+    db.query('UPDATE bookings SET name = ? WHERE id = ?', [formattedName, insertedId]);
+
     res.status(201).json({ id: result.insertId });
   } catch (err) {
     console.log(err);
@@ -177,11 +181,11 @@ exports.updateTour = async (req, res) => {
     if (updatePrice) {
       // if recalculating price, need type_of_tour and company_id
       if (!('type_of_tour' in req.body)) neededFields.push('type_of_tour');
-      if (!('company_id' in req.body))   neededFields.push('company_id');
+      if (!('company_id' in req.body)) neededFields.push('company_id');
     }
     // For total_amount, need distance_km, premium, price (price will be from db or recalculated or user-provided)
     if (!('distance_km' in req.body)) neededFields.push('distance_km');
-    if (!('premium' in req.body))     neededFields.push('premium');
+    if (!('premium' in req.body)) neededFields.push('premium');
     if (!updatePrice && !('price' in req.body)) neededFields.push('price'); // Don't fetch price if recalculating
   }
 
@@ -229,10 +233,10 @@ exports.updateTour = async (req, res) => {
 
   // 3. Recalculate total_amount if any dependent changed
   if (recalcTotal) {
-    const distance = Number( req.body.distance_km !== undefined ? req.body.distance_km : tourData.distance_km );
-    const premium = Number( req.body.premium !== undefined ? req.body.premium : tourData.premium);
+    const distance = Number(req.body.distance_km !== undefined ? req.body.distance_km : tourData.distance_km);
+    const premium = Number(req.body.premium !== undefined ? req.body.premium : tourData.premium);
     const priceToUse = newPrice !== null ? newPrice : (req.body.price !== undefined ? Number(req.body.price) : (tourData.price !== undefined ? Number(tourData.price) : 0));
-    const total_amount = distance * priceToUse + premium;
+    const total_amount = ((distance) * 2) * priceToUse + premium;
     fields.push('total_amount = ?');
     values.push(total_amount);
   }
