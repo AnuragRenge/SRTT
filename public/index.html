@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelGo — Tours, Travels & Cab Bookings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Premium tours, airport pickups, outstation cabs and custom travel packages. Book safe, reliable rides and curated experiences.">
+  <link rel="icon" href="favicon.ico">
+  <link rel="preload" href="images/hero.jpg" as="image">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="brand">
+        <img src="images/logo.svg" alt="TravelGo logo" class="logo">
+        <span class="brand-name">TravelGo</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+        <ul id="nav-menu" class="nav-menu">
+          <li><a href="#services">Services</a></li>
+          <li><a href="#tours">Tours</a></li>
+          <li><a href="#fleet">Fleet</a></li>
+          <li><a href="#testimonials">Reviews</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#contact" class="btn btn-sm btn-outline">Contact</a></li>
+          <li><button class="btn btn-sm btn-primary" data-open-booking>Book Now</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-media" role="img" aria-label="Scenic travel view"></div>
+      <div class="container hero-content">
+        <h1>Experience Stunning Journeys with Reliable Rides</h1>
+        <p>Airport transfers, city tours, outstation cabs — on time, comfortable, and affordable.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-open-booking>Book a Cab</button>
+          <a href="#tours" class="btn btn-ghost">Explore Tours</a>
+        </div>
+        <div class="stats">
+          <div><strong>50,000+</strong><span>Happy Travelers</span></div>
+          <div><strong>2,500+</strong><span>5‑Star Reviews</span></div>
+          <div><strong>120+</strong><span>Verified Drivers</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="section container">
+      <header class="section-header">
+        <h2>What We Offer</h2>
+        <p>Flexible travel services tailored to every need.</p>
+      </header>
+      <div class="cards">
+        <article class="card">
+          <div class="card-icon">🚕</div>
+          <h3>Airport Pickups</h3>
+          <p>Meet-and-greet, live tracking, and free waiting up to 30 minutes.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">🗺️</div>
+          <h3>City Sightseeing</h3>
+          <p>Curated half-day and full-day tours with local experts.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">🏔️</div>
+          <h3>Outstation Trips</h3>
+          <p>Intercity rides with transparent pricing and clean vehicles.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">🕒</div>
+          <h3>Hourly Rentals</h3>
+          <p>Flexible bookings for business, shopping, or events.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Featured Tours -->
+    <section id="tours" class="section container">
+      <header class="section-header">
+        <h2>Featured Tours</h2>
+        <p>Handpicked experiences with seamless logistics.</p>
+      </header>
+      <div class="tours-grid">
+        <article class="tour">
+          <img src="images/city.jpg" alt="Urban skyline tour">
+          <div class="tour-body">
+            <h3>Urban Highlights</h3>
+            <p>Discover iconic landmarks, markets, and cuisine in a 6‑hour guided city tour.</p>
+            <div class="tour-meta">
+              <span>6h</span>
+              <span>From ₹1,999</span>
+            </div>
+            <button class="btn btn-secondary" data-open-booking data-tour="Urban Highlights">Book</button>
+          </div>
+        </article>
+        <article class="tour">
+          <img src="images/mountains.jpg" alt="Scenic mountain retreat">
+          <div class="tour-body">
+            <h3>Mountain Escape</h3>
+            <p>Breathe fresh air, enjoy viewpoints, and unwind with nature’s best vistas.</p>
+            <div class="tour-meta">
+              <span>2d/1n</span>
+              <span>From ₹6,499</span>
+            </div>
+            <button class="btn btn-secondary" data-open-booking data-tour="Mountain Escape">Book</button>
+          </div>
+        </article>
+        <article class="tour">
+          <img src="images/beach.jpg" alt="Sunny coastal beach">
+          <div class="tour-body">
+            <h3>Coastal Bliss</h3>
+            <p>Sun, sand, and seafood. Enjoy beaches and coastal heritage.</p>
+            <div class="tour-meta">
+              <span>1d</span>
+              <span>From ₹3,499</span>
+            </div>
+            <button class="btn btn-secondary" data-open-booking data-tour="Coastal Bliss">Book</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Fleet -->
+    <section id="fleet" class="section container">
+      <header class="section-header">
+        <h2>Our Fleet</h2>
+        <p>Clean, air‑conditioned vehicles with verified drivers.</p>
+      </header>
+      <div class="fleet-grid">
+        <article class="fleet">
+          <img src="images/sedan.jpg" alt="Comfortable sedan">
+          <div class="fleet-body">
+            <h3>Sedan</h3>
+            <p>Ideal for up to 3 passengers with 2 bags. Budget‑friendly comfort.</p>
+            <ul class="tags">
+              <li>AC</li><li>Airbags</li><li>USB</li>
+            </ul>
+          </div>
+        </article>
+        <article class="fleet">
+          <img src="images/suv.jpg" alt="Spacious SUV">
+          <div class="fleet-body">
+            <h3>SUV</h3>
+            <p>Perfect for families and long trips. Ample legroom and storage.</p>
+            <ul class="tags">
+              <li>AC</li><li>ABS</li><li>Child Seat*</li>
+            </ul>
+          </div>
+        </article>
+        <article class="fleet">
+          <img src="images/van.jpg" alt="Comfortable van">
+          <div class="fleet-body">
+            <h3>Tempo Traveller</h3>
+            <p>Groups up to 12. Comfortable seating and luggage space.</p>
+            <ul class="tags">
+              <li>AC</li><li>Recliners</li><li>Music</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="section container">
+      <header class="section-header">
+        <h2>What Customers Say</h2>
+        <p>Real stories from happy travelers.</p>
+      </header>
+      <div class="testimonials">
+        <blockquote class="quote">
+          <p>“On time, neat car, and a courteous driver. Booking was effortless.”</p>
+          <footer>— Aisha R.</footer>
+        </blockquote>
+        <blockquote class="quote">
+          <p>“We loved the city tour! The guide knew the best hidden gems.”</p>
+          <footer>— Rohan P.</footer>
+        </blockquote>
+        <blockquote class="quote">
+          <p>“Transparent pricing and no hassles. Highly recommend TravelGo.”</p>
+          <footer>— Kavya S.</footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section container">
+      <header class="section-header">
+        <h2>FAQs</h2>
+        <p>Quick answers to common questions.</p>
+      </header>
+      <div class="accordion" role="tablist">
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">How do I modify or cancel a booking?</button>
+          <div class="accordion-panel">
+            <p>Use the link in your confirmation email or contact support at least 4 hours before pickup.</p>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">What safety measures are in place?</button>
+          <div class="accordion-panel">
+            <p>All vehicles undergo routine checks. Drivers are verified and trained for customer safety.</p>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">Do you provide child seats?</button>
+          <div class="accordion-panel">
+            <p>Yes, upon request during booking (subject to availability).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="section container">
+      <header class="section-header">
+        <h2>Contact Us</h2>
+        <p>We’re here to help with quotes and custom itineraries.</p>
+      </header>
+      <form id="contact-form" class="form">
+        <div class="grid-2">
+          <label>
+            <span>Name</span>
+            <input type="text" name="name" required placeholder="Full name">
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" name="email" required placeholder="name@example.com">
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>
+            <span>Phone</span>
+            <input type="tel" name="phone" required placeholder="+91 98765 43210">
+          </label>
+          <label>
+            <span>Topic</span>
+            <select name="topic" required>
+              <option value="booking">Booking</option>
+              <option value="tour">Tour Packages</option>
+              <option value="support">Support</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span>Message</span>
+          <textarea name="message" rows="5" required placeholder="Tell us how we can help..."></textarea>
+        </label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Send Message</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <div class="brand footer-brand">
+          <img src="images/logo.svg" alt="" class="logo">
+          <span class="brand-name">TravelGo</span>
+        </div>
+        <p class="muted">Safe rides, curated tours, and transparent prices.</p>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul class="link-list">
+          <li><a href="#services">Services</a></li>
+          <li><a href="#tours">Tours</a></li>
+          <li><a href="#fleet">Fleet</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul class="link-list">
+          <li>+91 90000 00000</li>
+          <li>support@travelgo.example</li>
+          <li>Mon–Sun 6:00–23:00</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Actions</h4>
+        <button class="btn btn-secondary" data-open-booking>Book a Ride</button>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© <span id="year"></span> TravelGo. All rights reserved.</p>
+      <div class="tiny-links">
+        <a href="#" aria-label="Terms">Terms</a>
+        <a href="#" aria-label="Privacy">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Booking Modal -->
+  <dialog id="booking-modal" class="modal">
+    <form method="dialog" class="modal-box" id="booking-form">
+      <header class="modal-header">
+        <h3>Book Your Ride</h3>
+        <button type="button" class="icon-btn" aria-label="Close" data-close>✕</button>
+      </header>
+      <div class="modal-body">
+        <div class="grid-2">
+          <label>
+            <span>Pickup Location</span>
+            <input type="text" name="pickup" required placeholder="e.g., Bengaluru Airport (BLR)">
+          </label>
+          <label>
+            <span>Drop Location</span>
+            <input type="text" name="drop" required placeholder="e.g., Indiranagar">
+          </label>
+        </div>
+        <div class="grid-3">
+          <label>
+            <span>Date</span>
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            <span>Time</span>
+            <input type="time" name="time" required>
+          </label>
+          <label>
+            <span>Vehicle</span>
+            <select name="vehicle" required>
+              <option value="sedan">Sedan</option>
+              <option value="suv">SUV</option>
+              <option value="van">Tempo Traveller</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid-3">
+          <label>
+            <span>Passengers</span>
+            <input type="number" name="passengers" min="1" max="12" value="1" required>
+          </label>
+          <label>
+            <span>Trip Type</span>
+            <select name="tripType" required>
+              <option value="oneway">One Way</option>
+              <option value="round">Round Trip</option>
+              <option value="hourly">Hourly</option>
+            </select>
+          </label>
+          <label>
+            <span>Approx. Distance (km)</span>
+            <input type="number" name="distance" min="1" step="0.1" placeholder="e.g., 35" required>
+          </label>
+        </div>
+        <label>
+          <span>Notes (optional)</span>
+          <textarea name="notes" rows="3" placeholder="Flight number, child seat, etc."></textarea>
+        </label>
+        <div class="estimate">
+          <div>
+            <strong>Estimated Fare:</strong>
+            <span id="fare">₹0</span>
+          </div>
+          <div class="mini muted" id="fare-note">Estimate updates as details change.</div>
+        </div>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+        <button class="btn btn-primary" type="submit">Confirm Booking</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
