@@ -52,7 +52,7 @@ exports.createLead = async (req, res) => {
     // Admin Email setup
     const adminSubject = 'New Enquiry/Lead has been created';
     const adminHTML = enquiryCreatedTemplate({ name, phone, email, source }); 
-    const adminText = `Hello Anurag Renge, New Enquiry/Lead has been created with the following details:
+    const adminText = `Hello Admin, New Enquiry/Lead has been created with the following details:
     \n Name: ${name} \n Phone: ${phone} \n Email: ${email} \n Source: ${source}` ;
 
     const [result] = await db.query(
@@ -66,7 +66,7 @@ exports.createLead = async (req, res) => {
         .then()
         .catch(err => console.error(`Email error for ${email}:`, err));
 
-      sendEmail('anuragrenge90@gmail.com', adminSubject, adminHTML, adminText)
+      sendEmail('contact.gosrtt@gmail.com', adminSubject, adminHTML, adminText)
         .then()
         .catch(err => console.error(`Admin email error:`, err));
     });

@@ -13,15 +13,16 @@ const transporter = require('../middleware/emailConfig');
  *   { filename: 'file.pdf', path: 'https://example.com/file.pdf' }
  */
 
-async function sendEmail(to, subject, html, text) {
+async function sendEmail(to, subject, html, text,attachments) {
   try {
     const mailOptions = {
-      from: `"Sai Ram Tours & Travels" <Do-not-reply@srtt.in>`,
+      from: `"Sai Ram Tours & Travels" <Do-not-reply@gosrtt.com>`,
       to,
       subject,
       text,
       html,
-      replyTo: 'anurag.renge@stetig.in',
+      replyTo: 'contact.gosrtt@gmail.com',
+      
     };
 
     // Handle attachments if provided

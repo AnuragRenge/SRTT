@@ -17,7 +17,7 @@ function enquiryCreatedTemplate({ name, phone, email, source }) {
 <!-- Body -->
 <div style="padding: 20px;">
   <p style="color: #555; font-size: 15px; line-height: 1.6;">
-    Hello Anurag Renge,<br/>  
+    Hello Admin,<br/>  
     A new enquiry/lead has just been created in the system. Please find the details below:
   </p>
 

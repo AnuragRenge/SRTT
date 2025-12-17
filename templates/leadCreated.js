@@ -27,7 +27,7 @@ function leadCreatedTemplate(name) {
 
     <!-- Call to Action Button -->
     <div style="text-align: center; margin: 25px 0;">
-      <a href="tel:7755926255" style="background: linear-gradient(135deg, #00c6ff, #0072ff); color: white; padding: 14px 28px; border-radius: 30px; text-decoration: none; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+      <a href="tel:8055505042" style="background: linear-gradient(135deg, #00c6ff, #0072ff); color: white; padding: 14px 28px; border-radius: 30px; text-decoration: none; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
         📞 Call Us Now
       </a>
     </div>
